@@ -2,11 +2,26 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "cmake",
-			"label": "CMake: configure",
-			"command": "configure",
+			"type": "shell",
+			"label": "Halloumi Build",
+			"command": "./build.sh",
 			"problemMatcher": [],
-			"detail": "CMake template configure task"
+			"detail": "Halloumi build command",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"type": "shell",
+			"label": "Halloumi Rebuild",
+			"command": "rm -rf build install; ./build.sh",
+			"problemMatcher": [],
+			"detail": "Halloumi rebuild command",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			}
 		}
 	]
 }

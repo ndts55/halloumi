@@ -1,0 +1,45 @@
+[   
+    {
+        "comment": [
+            "Based on ''/home/mas/data/ephemeris/jpl/gm431.tpc'",
+            "and 'briedata/constants/de32.json'. ",
+            "contains just the bare minimum for the test cases"
+        ]
+    },
+    {
+        "CONSTANTS" : "",
+        "AU" : 1.4959787070000000E+08,
+        "CLIGHT" : 2.9979245800000000E+05,
+        "EMRAT" : 8.1300568800524700E+01,
+        "PS" : 4.56e-9
+    },
+    {
+        "NAME" : "Sun",
+        "NAIFID" : 10,
+        "GM" : 1.3271244004193938E+11,
+        "SOI" : 10000000000,
+        "R" : 696342,
+        "A_MEAN" : 0,
+        "J2" : 0.0
+    },
+    {
+        "NAME" : "Moon",
+        "NAIFID" : 301,
+        "MAIN_BODY" : "Earth",
+        "GM" : 4.9028000661637961E+03,
+        "SOIOld" : 66194.377280492699,
+        "R" : 1737.5,
+        "A_MEAN" : 384466.5276989999,
+        "J2" : 203.43e-6
+    },    
+    {
+        "NAME" : "Earth",
+        "NAIFID" : 399,
+        "MAIN_BODY" : "Sun",
+        "GM" : 3.9860043543609598E+05,
+        "SOIOld" : 924646.788599425,
+        "R" : 6378.1366,
+        "A_MEAN" : 149597870.7,
+        "J2" : 1082.636022984e-6
+    }
+]

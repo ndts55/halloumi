@@ -1,0 +1,55 @@
+{
+    "execution": {
+        "preferGPU": true,
+        "gpuIfNeeded": true
+    },
+    "integration": {
+        "MINstep": 1e-6,
+        "absTol": 1e-12,
+        "relTol": 1e-12,
+        "maxSTEPS": 1e6
+    },
+    "model": {
+        "accelerations": [
+            "PointGravity"
+        ],
+        "environment": {
+            "ephemeris": [
+                "data/de430.brie"
+            ],
+            "constants": "acceptance/constants.json",
+            "activebodies": [
+                "Sun",
+                "Earth",
+                "Moon"
+            ],
+            "preferSSB": true
+        },
+        "events": {
+            "switchcentre": false,
+            "collision": {
+                "needslogging": false,
+                "cases": [
+                    {
+                        "body": "Earth",
+                        "refined": true,
+                        "offset": 120.0,
+                        "tolerance": 1e-6
+                    },
+                    {
+                        "body": "Sun",
+                        "refined": false,
+                        "offset": 120.0,
+                        "tolerance": 1e-6
+                    },
+                    {
+                        "body": "Moon",
+                        "refined": false,
+                        "offset": 120.0,
+                        "tolerance": 1e-6
+                    }
+                ]
+            }
+        }
+    }
+}
