@@ -1,23 +1,35 @@
 #include <iostream>
 #include <optional>
-#include "json.hpp"
 #include "ephemeris.hpp"
+#include "states.hpp"
+#include "utils.hpp"
 
 Ephemeris read_ephemeris(const nlohmann::json &configuration)
 {
-    auto exec_config = json::from_file(configuration["simConfig"]["config"]);
+    auto exec_config = json_from_file(configuration["simConfig"]["config"]);
     auto brie_file = exec_config["model"]["environment"]["ephemeris"];
     return Ephemeris::from_brie(brie_file);
 }
 
+StatesArray read_samples(const nlohmann::json &configuration)
+{
+    auto samples_json = json_from_file(configuration["samples"]);
+    return StatesArray::from_json(samples_json);
+}
+
 int main(int argc, char const *argv[])
 {
-    auto configuration = json::from_file("acceptance/acceptance.test.5-days.json");
+    auto configuration = json_from_file("acceptance/acceptance.test.5-days.json");
     // read in ephemeris input data
     auto ephemeris = read_ephemeris(configuration);
 
     std::cout << "Read ephemeris\n"
               << ephemeris.n_bodies() << std::endl;
+
+    auto samples = read_samples(configuration);
+
+    std::cout << "Read samples\n"
+              << samples.size() << std::endl;
 
     // TODO read in sample input data
     // TODO setup the simulation for CUDA devices

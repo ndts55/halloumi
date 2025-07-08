@@ -1,6 +1,5 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
-#include "json.hpp"
 #include "utils.hpp"
 #include "ephemeris.hpp"
 
@@ -96,7 +95,7 @@ Ephemeris load_brie_v2(const nlohmann::json &core)
 Ephemeris ephemeris_from_brie_file(const std::string &file)
 {
     // load cbor from given file
-    auto cbor_json = json::from_cbor(file);
+    auto cbor_json = json_from_cbor(file);
 
     auto layout = cbor_json["layout"];
     if (layout != 1 && layout != 2)

@@ -3,7 +3,6 @@
 #include "types.hpp"
 
 // TODO implement some kind of mirror type that manages data on device
-// TODO convert Ephemeris to RAII class
 
 #pragma region Enums
 enum IntMembers
@@ -41,6 +40,7 @@ private:
     std::vector<Integer> calculate_missing_naif_ids(const std::vector<Integer> other_naif_ids) const;
 
 public:
+    EphemerisMetadata() = delete;
     EphemerisMetadata(std::vector<Integer> ints, std::vector<Float> flts) : integers(ints), floats(flts) {}
     EphemerisMetadata(EphemerisMetadata &emd) : integers(emd.integers), floats(emd.floats) {}
     EphemerisMetadata merge_with(const EphemerisMetadata &other) const;
@@ -52,6 +52,7 @@ public:
     {
         return lhs.merge_with(rhs);
     }
+    // TODO getters for individual values in integers and floats
 };
 #pragma endregion
 
@@ -68,6 +69,7 @@ public:
     Ephemeris merge_with(const Ephemeris &other_ephemeris);
 
     Ephemeris(EphemerisMetadata md, std::vector<Float> d) : metadata(md), data(d) {}
+    Ephemeris() = delete;
 
     size_t n_bodies() const;
 };

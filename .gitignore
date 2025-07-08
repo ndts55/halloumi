@@ -2,6 +2,7 @@ data/
 deps/
 build/
 install/
+core.login*
 # Created by https://www.toptal.com/developers/gitignore/api/clion+all,visualstudiocode,linux,c++
 # Edit at https://www.toptal.com/developers/gitignore?templates=clion+all,visualstudiocode,linux,c++
 
