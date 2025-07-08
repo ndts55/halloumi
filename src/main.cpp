@@ -1,7 +1,7 @@
 #include <iostream>
 #include <optional>
 #include "ephemeris.hpp"
-#include "states.hpp"
+#include "samples.hpp"
 #include "utils.hpp"
 
 Ephemeris read_ephemeris(const nlohmann::json &configuration)
@@ -11,10 +11,10 @@ Ephemeris read_ephemeris(const nlohmann::json &configuration)
     return Ephemeris::from_brie(brie_file);
 }
 
-StatesArray read_samples(const nlohmann::json &configuration)
+Samples read_samples(const nlohmann::json &configuration)
 {
     auto samples_json = json_from_file(configuration["samples"]);
-    return StatesArray::from_json(samples_json);
+    return Samples::from_json(samples_json);
 }
 
 int main(int argc, char const *argv[])
@@ -26,12 +26,12 @@ int main(int argc, char const *argv[])
     std::cout << "Read ephemeris\n"
               << ephemeris.n_bodies() << std::endl;
 
+    // read in sample input data
     auto samples = read_samples(configuration);
 
     std::cout << "Read samples\n"
               << samples.size() << std::endl;
 
-    // TODO read in sample input data
     // TODO setup the simulation for CUDA devices
     // TODO ensure coalesced access to data in global memory
     // TODO implement kernel for ode evaluation (all stages)
