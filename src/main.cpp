@@ -3,6 +3,7 @@
 #include "ephemeris.hpp"
 #include "samples.hpp"
 #include "utils.hpp"
+#include "simulation.hpp"
 
 Ephemeris read_ephemeris(const nlohmann::json &configuration)
 {
@@ -17,20 +18,15 @@ Samples read_samples(const nlohmann::json &configuration)
     return Samples::from_json(samples_json);
 }
 
-int main(int argc, char const *argv[])
+int main()
 {
     auto configuration = json_from_file("acceptance/acceptance.test.5-days.json");
-    // read in ephemeris input data
-    auto ephemeris = read_ephemeris(configuration);
+    auto simulation = Simulation::from_json(configuration);
 
     std::cout << "Read ephemeris\n"
-              << ephemeris.n_bodies() << std::endl;
-
-    // read in sample input data
-    auto samples = read_samples(configuration);
-
+              << simulation.ephemeris().n_bodies() << std::endl;
     std::cout << "Read samples\n"
-              << samples.size() << std::endl;
+              << simulation.samples().size() << std::endl;
 
     // TODO setup the simulation for CUDA devices
     // TODO ensure coalesced access to data in global memory

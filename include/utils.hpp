@@ -8,3 +8,5 @@ nlohmann::json json_from_file(const std::string &path);
 nlohmann::json json_from_cbor(const std::string &file);
 
 size_t get_index(const size_t &n_vecs, const size_t &dim, const size_t &index);
+
+void print_json(const nlohmann::json& json);

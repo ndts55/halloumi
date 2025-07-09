@@ -1,3 +1,4 @@
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include "utils.hpp"
@@ -48,7 +49,7 @@ EphemerisMetadata load_ephemeris_metadata_v1(const nlohmann::json &core)
         idx += 1;
     }
 
-    return EphemerisMetadata(integers, floats);
+    return EphemerisMetadata(std::move(integers), std::move(floats));
 }
 
 std::vector<Float> load_ephemeris_data_v1(const nlohmann::json &core)
@@ -68,26 +69,30 @@ std::vector<Float> load_ephemeris_data_v1(const nlohmann::json &core)
 
 Ephemeris load_brie_v1(const nlohmann::json &core)
 {
+    std::cout << "loading brie v1" << std::endl;
     auto metadata = load_ephemeris_metadata_v1(core);
     auto data = load_ephemeris_data_v1(core);
-    return Ephemeris(metadata, data);
+    return Ephemeris(std::move(metadata), std::move(data));
 }
 #pragma endregion
 
 #pragma region Layout v2
 Ephemeris load_brie_v2(const nlohmann::json &core)
 {
-    auto n_bodies = core.size();
+    auto metadata = core["metadata"];
+    size_t n_bodies = metadata["nBodyUnits"];
 
     std::vector<Integer> integers(n_bodies * INTSIZE, 0);
     std::vector<Float> floats(n_bodies * REALSIZE, 0.0);
     std::vector<Float> data(core["data"].size(), 0.0);
 
-    std::copy(core["intMetadata"].begin(), core["intMetadata"].end(), integers.begin());
-    std::copy(core["doubleMetadata"].begin(), core["doubleMetadata"].end(), floats.begin());
-    std::copy(core["data"].begin(), core["data"].end(), data.begin());
+    std::copy(metadata["intMetadata"].begin(), metadata["intMetadata"].end(), integers.begin());
+    std::copy(metadata["doubleMetadata"].begin(), metadata["doubleMetadata"].end(), floats.begin());
 
-    return Ephemeris(EphemerisMetadata(integers, floats), data);
+    auto data_json = core["data"];
+    std::copy(data_json.begin(), data_json.end(), data.begin());
+
+    return Ephemeris(EphemerisMetadata(std::move(integers), std::move(floats)), std::move(data));
 }
 #pragma endregion
 
@@ -98,7 +103,7 @@ Ephemeris ephemeris_from_brie_file(const std::string &file)
     auto cbor_json = json_from_cbor(file);
 
     auto layout = cbor_json["layout"];
-    if (layout != 1 && layout != 2)
+    if (!layout.is_number() || (layout != 1 && layout != 2))
     {
         throw std::invalid_argument("brie data is neither v1 nor v2");
     }

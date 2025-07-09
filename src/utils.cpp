@@ -1,3 +1,4 @@
+#include <iostream>
 #include "utils.hpp"
 
 nlohmann::json json_from_file(const std::string &path)
@@ -38,4 +39,43 @@ nlohmann::json json_from_cbor(const std::string &file)
 size_t get_index(const size_t &n_vecs, const size_t &dim, const size_t &index)
 {
     return n_vecs * dim + index;
+}
+
+void print_json(const nlohmann::json &json)
+{
+    if (json.is_string())
+    {
+        std::cout << json << std::endl;
+    }
+    else if (json.is_array())
+    {
+        std::cout << "array of size " << json.size() << std::endl;
+    }
+    else if (json.is_object())
+    {
+        for (auto it = json.begin(); it != json.end(); ++it)
+        {
+            std::cout << "key: " << it.key() << std::endl;
+        }
+    }
+    else if (json.is_number())
+    {
+        std::cout << "Number: " << json << std::endl;
+    }
+    else if (json.is_boolean())
+    {
+        std::cout << "Boolean: " << json << std::endl;
+    }
+    else if (json.is_null())
+    {
+        std::cout << "Null" << std::endl;
+    }
+    else if (json.is_binary())
+    {
+        std::cout << "Binary with size " << json.size() << std::endl;
+    }
+    else
+    {
+        std::cout << "unsupported json type " << std::endl;
+    }
 }
