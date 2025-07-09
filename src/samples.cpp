@@ -4,11 +4,12 @@
 #include "utils.hpp"
 #include "samples.hpp"
 
-Samples::Samples(const std::vector<Float> &&d, const std::vector<Float> &&e)
+Samples::Samples(const std::vector<Float> &&d, const std::vector<Float> &&e, Integer center_of_integration)
 {
     this->data = std::move(d);
     this->epochs = std::move(e);
     this->n_vecs = this->data.size() / STATE_DIM;
+    this->center_of_integration = center_of_integration;
     if ((this->n_vecs * STATE_DIM) != this->data.size() || this->n_vecs != this->epochs.size())
     {
         throw std::runtime_error(
@@ -40,8 +41,7 @@ Samples Samples::from_json(const nlohmann::json &json)
             // put each element of vec<6> in the correct position
             data[get_index(n_vecs, dim, idx)] = cart[dim];
         }
-        // TODO set metadata as COI (even though it is always 399 (Earth))
     }
 
-    return Samples(std::move(data), std::move(epochs));
+    return Samples(std::move(data), std::move(epochs), json["centre"]);
 }

@@ -6,14 +6,14 @@
 class Samples
 {
 private:
-    size_t n_vecs; // ? redundant?
+    size_t n_vecs;
+    Integer center_of_integration;
     std::vector<Float> data;
     std::vector<Float> epochs;
-    // TODO add cois? for now we can get away with a default implementation that just returns 399 and is inlined
 
 public:
-    Samples() = delete;
-    Samples(const std::vector<Float> &&d, const std::vector<Float> &&e);
+    Samples() = default;
+    Samples(const std::vector<Float> &&d, const std::vector<Float> &&e, Integer center_of_integration);
     static Samples from_json(const nlohmann::json &json);
     size_t size() const;
 };
