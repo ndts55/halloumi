@@ -5,19 +5,6 @@
 #include "utils.hpp"
 #include "simulation.hpp"
 
-Ephemeris read_ephemeris(const nlohmann::json &configuration)
-{
-    auto exec_config = json_from_file(configuration["simConfig"]["config"]);
-    auto brie_file = exec_config["model"]["environment"]["ephemeris"];
-    return Ephemeris::from_brie(brie_file);
-}
-
-Samples read_samples(const nlohmann::json &configuration)
-{
-    auto samples_json = json_from_file(configuration["samples"]);
-    return Samples::from_json(samples_json);
-}
-
 int main()
 {
     auto configuration = json_from_file("acceptance/acceptance.test.5-days.json");
