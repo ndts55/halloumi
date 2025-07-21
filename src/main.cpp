@@ -12,9 +12,11 @@ int main()
     auto simulation = Simulation::from_json(configuration);
 
     std::cout << "Read ephemeris\n"
+              << "Bodies: "
               << simulation.ephemeris.n_bodies() << std::endl;
     std::cout << "Read propagation context\n"
-              << simulation.propagation_context.size() << std::endl;
+              << "States: "
+              << simulation.propagation_context.samples_data.n_vecs << std::endl;
     std::cout << "Read RKF paramters\n"
               << "> abs tol: " << simulation.rkf_parameters.abs_tol << "\n"
               << "> rel tol: " << simulation.rkf_parameters.rel_tol << "\n"
