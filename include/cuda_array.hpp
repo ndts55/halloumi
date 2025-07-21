@@ -102,10 +102,17 @@ public:
 #endif
         return data[idx];
     }
-    std::size_t n_elements() const { return n_elements_; }
-    std::size_t size() const { return n_elements_; }
+    inline std::size_t n_elements() const { return n_elements_; }
+    inline std::size_t size() const { return n_elements_; }
 
-    DeviceArray1D<T> get() const;
+    inline DeviceArray1D<T> get(CudaArrayPrefetch prefetch = CudaArrayPrefetch::NoPrefetch) const
+    {
+        if (prefetch == CudaArrayPrefetch::PrefetchToDevice)
+        {
+            prefetch_async(n_elements_, data);
+        }
+        return DeviceArray1D<T>(data.get(), n_elements_);
+    }
 };
 
 template <typename T, std::size_t VEC_SIZE>
@@ -145,11 +152,15 @@ public:
 #endif
         return data[index];
     }
-    std::size_t n_vecs() const { return n_vecs_; }
-    std::size_t size() const { return n_vecs_ * VEC_SIZE; }
+    inline std::size_t n_vecs() const { return n_vecs_; }
+    inline std::size_t size() const { return n_vecs_ * VEC_SIZE; }
 
-    DeviceArray2D<T, VEC_SIZE> get() const
+    inline DeviceArray2D<T, VEC_SIZE> get(CudaArrayPrefetch prefetch = CudaArrayPrefetch::NoPrefetch) const
     {
+        if (prefetch == CudaArrayPrefetch::PrefetchToDevice)
+        {
+            prefetch_async(size(), data);
+        }
         return DeviceArray2D<T, VEC_SIZE>{data.get(), n_vecs_};
     }
 };
@@ -169,7 +180,7 @@ public:
         data = make_managed_cuda_array<T>(n_vecs_ * VEC_SIZE * N_STAGES);
     }
     CudaArray3D<T, VEC_SIZE, N_STAGES> &operator=(CudaArray3D<T, VEC_SIZE, N_STAGES> &&other) = default;
-    T &at(std::size_t dim, std::size_t stage, std::size_t idx)
+    inline T &at(std::size_t dim, std::size_t stage, std::size_t idx)
     {
         auto index = get_3d_index(n_vecs_, dim, stage, idx);
 #ifndef NDEBUG
@@ -180,7 +191,7 @@ public:
 #endif
         return data[index];
     }
-    const T &at(std::size_t dim, std::size_t stage, std::size_t idx) const
+    inline const T &at(std::size_t dim, std::size_t stage, std::size_t idx) const
     {
         auto index = get_3d_index(n_vecs_, dim, stage, idx);
 #ifndef NDEBUG
@@ -191,11 +202,15 @@ public:
 #endif
         return data[index];
     }
-    std::size_t n_vecs() const { return n_vecs_; }
-    std::size_t size() const { return n_vecs_ * VEC_SIZE * N_STAGES; }
+    inline std::size_t n_vecs() const { return n_vecs_; }
+    inline std::size_t size() const { return n_vecs_ * VEC_SIZE * N_STAGES; }
 
-    DeviceArray3D<T, VEC_SIZE, N_STAGES> get() const
+    inline DeviceArray3D<T, VEC_SIZE, N_STAGES> get(CudaArrayPrefetch prefetch = CudaArrayPrefetch::NoPrefetch) const
     {
+        if (prefetch == CudaArrayPrefetch::PrefetchToDevice)
+        {
+            prefetch_async(size(), data);
+        }
         return DeviceArray3D<T, VEC_SIZE, N_STAGES>{data.get(), n_vecs_};
     }
 };
