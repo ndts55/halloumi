@@ -4,15 +4,6 @@
 #include "utils.hpp"
 #include "ephemeris.hpp"
 
-std::size_t Ephemeris::n_bodies() const
-{
-    return this->metadata.n_bodies();
-}
-std::size_t EphemerisMetadata::n_bodies() const
-{
-    return this->integers.size();
-}
-
 // TODO copy ephemeris data to device
 // TODO provide access to ephemeris data on device
 
