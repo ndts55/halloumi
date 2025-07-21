@@ -2,11 +2,25 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <string>
+#include <iostream>
+#include "types.hpp"
 
 nlohmann::json json_from_file(const std::string &path);
 
 nlohmann::json json_from_cbor(const std::string &file);
 
-size_t get_index(const size_t &n_vecs, const size_t &dim, const size_t &index);
+void print_json(const nlohmann::json &json);
 
-void print_json(const nlohmann::json& json);
+#pragma region Inlined Functions
+
+inline std::size_t get_2d_index(const std::size_t &n_vecs, const std::size_t &dim, const std::size_t &index)
+{
+    return dim * n_vecs + index;
+}
+
+inline std::size_t get_3d_index(const std::size_t &n_vecs, const std::size_t &dim, const std::size_t &stage, const std::size_t &index)
+{
+    return (stage * STATE_DIM + dim) * n_vecs + index;
+}
+
+#pragma endregion

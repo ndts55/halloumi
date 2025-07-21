@@ -1,5 +1,8 @@
-#include <iostream>
 #include "utils.hpp"
+#include <nlohmann/json.hpp>
+#include <fstream>
+#include <iostream>
+
 
 nlohmann::json json_from_file(const std::string &path)
 {
@@ -36,11 +39,6 @@ nlohmann::json json_from_cbor(const std::string &file)
     return nlohmann::json::from_cbor(buffer);
 }
 
-size_t get_index(const size_t &n_vecs, const size_t &dim, const size_t &index)
-{
-    return n_vecs * dim + index;
-}
-
 void print_json(const nlohmann::json &json)
 {
     if (json.is_string())
@@ -64,7 +62,7 @@ void print_json(const nlohmann::json &json)
     }
     else if (json.is_boolean())
     {
-        std::cout << "Boolean: " << json << std::endl;
+        std::cout << "bool: " << json << std::endl;
     }
     else if (json.is_null())
     {
