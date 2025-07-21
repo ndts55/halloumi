@@ -34,6 +34,7 @@ enum RealMembers
 class EphemerisMetadata
 {
 private:
+    // TODO convert to cuda arrays?
     std::vector<Integer> integers;
     std::vector<Float> floats;
 
@@ -47,7 +48,7 @@ public:
     EphemerisMetadata make_subset(const std::vector<Integer> naif_ids) const;
     EphemerisMetadata merge_with(const EphemerisMetadata &other) const;
     std::vector<Integer> naif_ids() const;
-    size_t n_bodies() const;
+    std::size_t n_bodies() const;
 
     friend EphemerisMetadata operator+(const EphemerisMetadata &lhs, const EphemerisMetadata &rhs)
     {
@@ -71,7 +72,7 @@ public:
     static Ephemeris from_brie(const nlohmann::json &json);
 
     Ephemeris merge_with(const Ephemeris &other_ephemeris);
-    size_t n_bodies() const;
+    std::size_t n_bodies() const;
 
     Ephemeris &operator=(const Ephemeris &&e);
 };

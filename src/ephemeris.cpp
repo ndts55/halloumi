@@ -4,11 +4,11 @@
 #include "utils.hpp"
 #include "ephemeris.hpp"
 
-size_t Ephemeris::n_bodies() const
+std::size_t Ephemeris::n_bodies() const
 {
     return this->metadata.n_bodies();
 }
-size_t EphemerisMetadata::n_bodies() const
+std::size_t EphemerisMetadata::n_bodies() const
 {
     return this->integers.size();
 }
@@ -24,28 +24,28 @@ EphemerisMetadata load_ephemeris_metadata_v1(const nlohmann::json &core)
     std::vector<Integer> integers(n_bodies * INTSIZE, 0);
     std::vector<Float> floats(n_bodies * REALSIZE, 0.0);
     // load metadata from AoS to SoA using IntMembers and RealMembers enums
-    size_t idx = 0;
+    std::size_t idx = 0;
     for (auto body : core)
     {
         auto metadata = body["metadata"];
-        integers[get_index(n_bodies, FRAME, idx)] = metadata["frame"];
-        integers[get_index(n_bodies, DTYPE, idx)] = metadata["dtype"];
-        integers[get_index(n_bodies, TARGET, idx)] = metadata["target"];
-        integers[get_index(n_bodies, CENTER, idx)] = metadata["center"];
-        integers[get_index(n_bodies, NINTERVALS, idx)] = metadata["nintervals"];
-        integers[get_index(n_bodies, PDEG, idx)] = metadata["pdeg"];
-        integers[get_index(n_bodies, DATASIZE, idx)] = body["data"].size();
+        integers[get_2d_index(n_bodies, FRAME, idx)] = metadata["frame"];
+        integers[get_2d_index(n_bodies, DTYPE, idx)] = metadata["dtype"];
+        integers[get_2d_index(n_bodies, TARGET, idx)] = metadata["target"];
+        integers[get_2d_index(n_bodies, CENTER, idx)] = metadata["center"];
+        integers[get_2d_index(n_bodies, NINTERVALS, idx)] = metadata["nintervals"];
+        integers[get_2d_index(n_bodies, PDEG, idx)] = metadata["pdeg"];
+        integers[get_2d_index(n_bodies, DATASIZE, idx)] = body["data"].size();
         // set data offset
         if (idx == 0)
         {
-            integers[get_index(n_bodies, DATAOFFSET, idx)] = 0;
+            integers[get_2d_index(n_bodies, DATAOFFSET, idx)] = 0;
         }
         else
         {
-            integers[get_index(n_bodies, DATAOFFSET, idx)] = integers[get_index(n_bodies, DATAOFFSET, idx - 1)] + integers[get_index(n_bodies, DATASIZE, idx - 1)];
+            integers[get_2d_index(n_bodies, DATAOFFSET, idx)] = integers[get_2d_index(n_bodies, DATAOFFSET, idx - 1)] + integers[get_2d_index(n_bodies, DATASIZE, idx - 1)];
         }
-        floats[get_index(n_bodies, INITIALEPOCH, idx)] = metadata["startEpoch"];
-        floats[get_index(n_bodies, FINALEPOCH, idx)] = metadata["finalEpoch"];
+        floats[get_2d_index(n_bodies, INITIALEPOCH, idx)] = metadata["startEpoch"];
+        floats[get_2d_index(n_bodies, FINALEPOCH, idx)] = metadata["finalEpoch"];
         idx += 1;
     }
 
@@ -54,10 +54,10 @@ EphemerisMetadata load_ephemeris_metadata_v1(const nlohmann::json &core)
 
 std::vector<Float> load_ephemeris_data_v1(const nlohmann::json &core)
 {
-    size_t data_size = std::accumulate(core.begin(), core.end(), 0, [](const nlohmann::json &a, const nlohmann::json &b)
-                                       { return a["data"].size() + b["data"].size(); });
+    std::size_t data_size = std::accumulate(core.begin(), core.end(), 0, [](const nlohmann::json &a, const nlohmann::json &b)
+                                            { return a["data"].size() + b["data"].size(); });
     std::vector<Float> data(data_size, 0.0);
-    size_t idx = 0;
+    std::size_t idx = 0;
     auto data_iterator = data.begin();
     for (auto body : core)
     {
@@ -80,7 +80,7 @@ Ephemeris load_brie_v1(const nlohmann::json &core)
 Ephemeris load_brie_v2(const nlohmann::json &core)
 {
     auto metadata = core["metadata"];
-    size_t n_bodies = metadata["nBodyUnits"];
+    std::size_t n_bodies = metadata["nBodyUnits"];
 
     std::vector<Integer> integers(n_bodies * INTSIZE, 0);
     std::vector<Float> floats(n_bodies * REALSIZE, 0.0);
@@ -101,6 +101,9 @@ Ephemeris ephemeris_from_brie_file(const std::string &file)
 {
     // load cbor from given file
     auto cbor_json = json_from_cbor(file);
+
+    std::ofstream o("output.json");
+    o << cbor_json << std::endl;
 
     auto layout = cbor_json["layout"];
     if (!layout.is_number() || (layout != 1 && layout != 2))
@@ -204,7 +207,7 @@ EphemerisMetadata EphemerisMetadata::merge_with(const EphemerisMetadata &other) 
 
     // TODO re-caclulate data offsets
     /*
-    size_t offset = 0;
+    std::size_t offset = 0;
     for (idx_t i = 0; i < this->size(); i++) {
         this->getDataOffset(i) = offset;
         offset += this->getDataSize(i);
