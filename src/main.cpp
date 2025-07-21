@@ -1,22 +1,30 @@
 #include <iostream>
 #include <optional>
 #include "ephemeris.hpp"
-#include "samples.hpp"
+#include "propagation_context.hpp"
 #include "utils.hpp"
 #include "simulation.hpp"
 
 int main()
 {
+    // TODO take config file as command line argument
     auto configuration = json_from_file("acceptance/acceptance.test.5-days.json");
     auto simulation = Simulation::from_json(configuration);
 
     std::cout << "Read ephemeris\n"
-              << simulation.ephemeris().n_bodies() << std::endl;
-    std::cout << "Read samples\n"
-              << simulation.samples().size() << std::endl;
+              << simulation.ephemeris.n_bodies() << std::endl;
+    std::cout << "Read propagation context\n"
+              << simulation.propagation_context.size() << std::endl;
+    std::cout << "Read RKF paramters\n"
+              << "> abs tol: " << simulation.rkf_parameters.abs_tol << "\n"
+              << "> rel tol: " << simulation.rkf_parameters.rel_tol << "\n"
+              << "> initial time step: " << simulation.rkf_parameters.initial_time_step << "\n"
+              << "> min time step: " << simulation.rkf_parameters.min_time_step << "\n"
+              << "> max steps: " << simulation.rkf_parameters.max_steps << std::endl;
 
     // TODO setup the simulation for CUDA devices
     // TODO ensure coalesced access to data in global memory
+    // TODO implement kernel prepare_for_continuation
     // TODO implement kernel for ode evaluation (all stages)
     // TODO implement kernel for step advancement (adaptive step size)
     // TODO implement kernel for determining whether all samples have finished
