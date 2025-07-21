@@ -26,16 +26,11 @@ struct SamplesData
 #pragma endregion
 
 // PropagationContext SoA
-class PropagationContext
+struct PropagationContext
 {
-private:
-    PropagationState state_;
-    const SamplesData data_;
+    PropagationState propagation_state;
+    const SamplesData samples_data;
 
-public:
-    PropagationContext() = default;
     PropagationContext(PropagationState &&propagation_state, SamplesData &&samples_data);
     static PropagationContext from_json(const nlohmann::json &json);
-    inline std::size_t size() const { return data_.n_vecs; }
-    inline std::size_t n_vecs() const { return data_.n_vecs; }
 };

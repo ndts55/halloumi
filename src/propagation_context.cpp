@@ -6,19 +6,19 @@
 
 PropagationContext::PropagationContext(
     PropagationState &&propagation_state,
-    SamplesData &&samples_data) : state_(std::move(propagation_state)), data_(std::move(samples_data))
+    SamplesData &&samples_data) : propagation_state(std::move(propagation_state)), samples_data(std::move(samples_data))
 {
 #ifndef NDEBUG
-    auto expected_size = data_.n_vecs;
+    auto expected_size = samples_data.n_vecs;
 
     // Check each array size against expected size
-    bool states_check = (expected_size == state_.states.n_vecs());
-    bool epochs_check = (expected_size == state_.epochs.n_elements());
-    bool terminated_check = (expected_size == state_.terminated.n_elements());
-    bool dt_last_check = (expected_size == state_.dt_last.n_elements());
-    bool dt_next_check = (expected_size == state_.dt_next.n_elements());
-    bool end_epochs_check = (expected_size == data_.end_epochs.n_elements());
-    bool start_epochs_check = (expected_size == data_.start_epochs.n_elements());
+    bool states_check = (expected_size == propagation_state.states.n_vecs());
+    bool epochs_check = (expected_size == propagation_state.epochs.n_elements());
+    bool terminated_check = (expected_size == propagation_state.terminated.n_elements());
+    bool dt_last_check = (expected_size == propagation_state.dt_last.n_elements());
+    bool dt_next_check = (expected_size == propagation_state.dt_next.n_elements());
+    bool end_epochs_check = (expected_size == samples_data.end_epochs.n_elements());
+    bool start_epochs_check = (expected_size == samples_data.start_epochs.n_elements());
 
     // If any check fails, output details and throw exception
     if (!states_check || !epochs_check || !terminated_check || !dt_last_check ||
@@ -28,13 +28,13 @@ PropagationContext::PropagationContext(
         std::cerr << "┌───────────────────┬────────┬───────────────┐\n";
         std::cerr << "│ Array             │ Valid? │ Actual Size   │\n";
         std::cerr << "├───────────────────┼────────┼───────────────┤\n";
-        std::cerr << "│ states            │ " << (states_check ? " Yes  " : " No   ") << "│ " << state_.states.n_vecs() << "\n";
-        std::cerr << "│ epochs            │ " << (epochs_check ? " Yes  " : " No   ") << "│ " << state_.epochs.n_elements() << "\n";
-        std::cerr << "│ terminated        │ " << (terminated_check ? " Yes  " : " No   ") << "│ " << state_.terminated.n_elements() << "\n";
-        std::cerr << "│ dt_last           │ " << (dt_last_check ? " Yes  " : " No   ") << "│ " << state_.dt_last.n_elements() << "\n";
-        std::cerr << "│ dt_next           │ " << (dt_next_check ? " Yes  " : " No   ") << "│ " << state_.dt_next.n_elements() << "\n";
-        std::cerr << "│ end_epochs        │ " << (end_epochs_check ? " Yes  " : " No   ") << "│ " << data_.end_epochs.n_elements() << "\n";
-        std::cerr << "│ start_epochs      │ " << (start_epochs_check ? " Yes  " : " No   ") << "│ " << data_.start_epochs.n_elements() << "\n";
+        std::cerr << "│ states            │ " << (states_check ? " Yes  " : " No   ") << "│ " << propagation_state.states.n_vecs() << "\n";
+        std::cerr << "│ epochs            │ " << (epochs_check ? " Yes  " : " No   ") << "│ " << propagation_state.epochs.n_elements() << "\n";
+        std::cerr << "│ terminated        │ " << (terminated_check ? " Yes  " : " No   ") << "│ " << propagation_state.terminated.n_elements() << "\n";
+        std::cerr << "│ dt_last           │ " << (dt_last_check ? " Yes  " : " No   ") << "│ " << propagation_state.dt_last.n_elements() << "\n";
+        std::cerr << "│ dt_next           │ " << (dt_next_check ? " Yes  " : " No   ") << "│ " << propagation_state.dt_next.n_elements() << "\n";
+        std::cerr << "│ end_epochs        │ " << (end_epochs_check ? " Yes  " : " No   ") << "│ " << samples_data.end_epochs.n_elements() << "\n";
+        std::cerr << "│ start_epochs      │ " << (start_epochs_check ? " Yes  " : " No   ") << "│ " << samples_data.start_epochs.n_elements() << "\n";
         std::cerr << "└───────────────────┴────────┴───────────────┘\n";
 
         throw std::runtime_error("Malformed states: array size mismatch");
