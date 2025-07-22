@@ -13,5 +13,12 @@ struct Simulation
     // ? with_collisison: bool
     // ? validation : Validation struct
 
+    Simulation(
+        PropagationContext &&pc,
+        Ephemeris &&e,
+        RKFParameters &&rp) : propagation_context(std::move(pc)),
+                              ephemeris(std::move(e)),
+                              rkf_parameters(std::move(rp)) {}
+
     static Simulation from_json(const nlohmann::json &json);
 };
