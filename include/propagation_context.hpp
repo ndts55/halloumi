@@ -3,8 +3,6 @@
 #include "cuda_array.hpp"
 #include <nlohmann/json.hpp>
 
-#pragma region Helper Structs
-
 struct PropagationState
 {
     CudaArray2D<Float, STATE_DIM> states;
@@ -23,9 +21,6 @@ struct SamplesData
     const CudaArray1D<Float> start_epochs;
 };
 
-#pragma endregion
-
-// PropagationContext SoA
 struct PropagationContext
 {
     PropagationState propagation_state;
