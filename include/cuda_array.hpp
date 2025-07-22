@@ -117,17 +117,17 @@ public:
     }
 
     CudaPtr<T[]> &data() { return data_; }
-    
+
     // Iterator support
-    using iterator = T*;
-    using const_iterator = const T*;
-    
+    using iterator = T *;
+    using const_iterator = const T *;
+
     iterator begin() { return data_.get(); }
     iterator end() { return data_.get() + n_elements_; }
-    
+
     const_iterator begin() const { return data_.get(); }
     const_iterator end() const { return data_.get() + n_elements_; }
-    
+
     const_iterator cbegin() const { return data_.get(); }
     const_iterator cend() const { return data_.get() + n_elements_; }
 };
@@ -173,6 +173,7 @@ public:
 
     inline std::size_t n_vecs() const { return n_vecs_; }
     inline std::size_t size() const { return n_vecs_ * VEC_SIZE; }
+    inline std::size_t vec_size() const { return VEC_SIZE; }
 
     inline DeviceArray2D<T, VEC_SIZE> get(CudaArrayPrefetch prefetch = CudaArrayPrefetch::NoPrefetch) const
     {
@@ -184,17 +185,17 @@ public:
     }
 
     CudaPtr<T[]> &data() { return data_; }
-    
+
     // Iterator support
-    using iterator = T*;
-    using const_iterator = const T*;
-    
+    using iterator = T *;
+    using const_iterator = const T *;
+
     iterator begin() { return data_.get(); }
     iterator end() { return data_.get() + size(); }
-    
+
     const_iterator begin() const { return data_.get(); }
     const_iterator end() const { return data_.get() + size(); }
-    
+
     const_iterator cbegin() const { return data_.get(); }
     const_iterator cend() const { return data_.get() + size(); }
 };
@@ -240,6 +241,8 @@ public:
 
     inline std::size_t n_vecs() const { return n_vecs_; }
     inline std::size_t size() const { return n_vecs_ * VEC_SIZE * N_STAGES; }
+    inline std::size_t vec_size() const { return VEC_SIZE; }
+    inline std::size_t n_stages() const { return N_STAGES; }
 
     inline DeviceArray3D<T, VEC_SIZE, N_STAGES> get(CudaArrayPrefetch prefetch = CudaArrayPrefetch::NoPrefetch) const
     {
@@ -251,17 +254,17 @@ public:
     }
 
     CudaPtr<T[]> &data() { return data_; }
-    
+
     // Iterator support
-    using iterator = T*;
-    using const_iterator = const T*;
-    
+    using iterator = T *;
+    using const_iterator = const T *;
+
     iterator begin() { return data_.get(); }
     iterator end() { return data_.get() + size(); }
-    
+
     const_iterator begin() const { return data_.get(); }
     const_iterator end() const { return data_.get() + size(); }
-    
+
     const_iterator cbegin() const { return data_.get(); }
     const_iterator cend() const { return data_.get() + size(); }
 };

@@ -34,4 +34,6 @@ struct Ephemeris
     CudaArray2D<Float, REALSIZE> floats;
 
     static Ephemeris from_brie(const nlohmann::json &json);
+
+    inline std::size_t n_bodies() const { return integers.n_vecs(); }
 };
