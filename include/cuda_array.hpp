@@ -34,18 +34,9 @@ void fill_cuda_array(std::size_t n_elements, CudaPtr<T[]> &data_, T fill_value)
 }
 
 template <typename T>
-void prefetch_async(std::size_t n_elements, CudaPtr<T[]> &data_)
+cudaError_t prefetch_async(const std::size_t n_elements, const CudaPtr<T[]> &data_)
 {
-    cudaError_t err = cudaMemPrefetchAsync(
-        data_.get(),
-        n_elements * sizeof(T),
-        0, // device ID
-        0  // stream
-    );
-    if (err != cudaSuccess)
-    {
-        throw std::runtime_error("cudaMemPrefetchAsync failed");
-    }
+    return cudaMemPrefetchAsync(data_.get(), n_elements * sizeof(T), 0, 0);
 }
 
 #pragma endregion
@@ -107,13 +98,13 @@ public:
     inline std::size_t n_elements() const { return n_elements_; }
     inline std::size_t size() const { return n_elements_; }
 
-    inline DeviceArray1D<T> get(CudaArrayPrefetch prefetch = CudaArrayPrefetch::NoPrefetch) const
+    inline DeviceArray1D<T> get() const
     {
-        if (prefetch == CudaArrayPrefetch::PrefetchToDevice)
-        {
-            prefetch_async(n_elements_, data_);
-        }
         return DeviceArray1D<T>(data_.get(), n_elements_);
+    }
+    cudaError_t prefetch() const
+    {
+        return prefetch_async(n_elements_, data_);
     }
 
     CudaPtr<T[]> &data() { return data_; }
@@ -175,13 +166,13 @@ public:
     inline std::size_t size() const { return n_vecs_ * VEC_SIZE; }
     inline std::size_t vec_size() const { return VEC_SIZE; }
 
-    inline DeviceArray2D<T, VEC_SIZE> get(CudaArrayPrefetch prefetch = CudaArrayPrefetch::NoPrefetch) const
+    inline DeviceArray2D<T, VEC_SIZE> get() const
     {
-        if (prefetch == CudaArrayPrefetch::PrefetchToDevice)
-        {
-            prefetch_async(size(), data_);
-        }
         return DeviceArray2D<T, VEC_SIZE>{data_.get(), n_vecs_};
+    }
+    cudaError_t prefetch() const
+    {
+        return prefetch_async(size(), data_);
     }
 
     CudaPtr<T[]> &data() { return data_; }
@@ -244,13 +235,13 @@ public:
     inline std::size_t vec_size() const { return VEC_SIZE; }
     inline std::size_t n_stages() const { return N_STAGES; }
 
-    inline DeviceArray3D<T, VEC_SIZE, N_STAGES> get(CudaArrayPrefetch prefetch = CudaArrayPrefetch::NoPrefetch) const
+    inline DeviceArray3D<T, VEC_SIZE, N_STAGES> get() const
     {
-        if (prefetch == CudaArrayPrefetch::PrefetchToDevice)
-        {
-            prefetch_async(size(), data_);
-        }
         return DeviceArray3D<T, VEC_SIZE, N_STAGES>{data_.get(), n_vecs_};
+    }
+    cudaError_t prefetch() const
+    {
+        return prefetch_async(size(), data_);
     }
 
     CudaPtr<T[]> &data() { return data_; }
