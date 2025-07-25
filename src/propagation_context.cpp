@@ -80,7 +80,9 @@ PropagationContext PropagationContext::from_json(const nlohmann::json &configura
             std::move(epochs),
             std::move(terminated),
             /* dt_last */ CudaArray1D<Float>(n_vecs, 0.0f),
-            /* dt_next */ CudaArray1D<Float>(n_vecs, 0.0f)},
+            /* dt_next */ CudaArray1D<Float>(n_vecs, 0.0f),
+            /* simulation_ended */ CudaArray1D<bool>(n_vecs, false),
+            /* backwards */ CudaArray1D<bool>(n_vecs, false)},
         SamplesData{
             n_vecs,
             /* center_of_integration: */ samples_json["centre"],

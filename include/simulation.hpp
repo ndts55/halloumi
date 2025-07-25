@@ -21,4 +21,6 @@ struct Simulation
                               rkf_parameters(std::move(rp)) {}
 
     static Simulation from_json(const nlohmann::json &json);
+
+    inline std::size_t n_samples() const { return propagation_context.samples_data.n_vecs; }
 };

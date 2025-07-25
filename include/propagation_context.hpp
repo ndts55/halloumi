@@ -10,6 +10,8 @@ struct PropagationState
     CudaArray1D<bool> terminated;
     CudaArray1D<Float> dt_last;
     CudaArray1D<Float> dt_next;
+    CudaArray1D<bool> simulation_ended;
+    CudaArray1D<bool> backwards;
 };
 
 struct SamplesData
