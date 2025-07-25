@@ -6,13 +6,15 @@
 #include "rkf_parameters.hpp"
 #include <cuda_runtime.h>
 
+// Test kernel to verify that device_ephemeris and device_rkf_parameters are correctly copied
+__global__ void test_device_constants();
+
+__host__ void launch_test_device_constants();
+
 // TODO Can this name be improved?
-__global__ void prepare_for_continuation(
-    const RKFParameters rkf_parameters,
-    DeviceArray2D<Float, STATE_DIM> samples);
+__global__ void prepare_for_continuation(DeviceArray2D<Float, STATE_DIM> samples);
 
 __global__ void advance_step(
-    const RKFParameters rkf_parameters,
     DeviceArray2D<Float, STATE_DIM> states,
     DeviceArray1D<Float> next_dts,
     DeviceArray1D<Float> last_dts,
