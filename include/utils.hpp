@@ -3,8 +3,8 @@
 #include <fstream>
 #include <string>
 #include <iostream>
-#include "types.hpp"
 #include <cuda_runtime.h>
+#include "core/types.hpp"
 
 nlohmann::json json_from_file(const std::string &path);
 

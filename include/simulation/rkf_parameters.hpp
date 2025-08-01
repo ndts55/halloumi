@@ -1,5 +1,5 @@
 #pragma once
-#include "types.hpp"
+#include "core/types.hpp"
 #include <nlohmann/json.hpp>
 #include <cstddef>
 #include <cuda_runtime.h>

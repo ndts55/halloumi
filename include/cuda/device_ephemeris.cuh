@@ -1,8 +1,8 @@
 #pragma once
-#include "types.hpp"
-#include "device_array.cuh"
-#include "cuda_array.hpp"
-#include "ephemeris.hpp"
+#include "core/types.hpp"
+#include "cuda/device_array.cuh"
+#include "cuda/cuda_array.hpp"
+#include "simulation/ephemeris.hpp"
 
 // Mirrors Ephemeris but specifically for device-side operations since access to integers, floats, and data is non-regular
 struct DeviceEphemeris

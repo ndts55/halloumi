@@ -3,7 +3,6 @@
 #include <fstream>
 #include <iostream>
 
-
 nlohmann::json json_from_file(const std::string &path)
 {
     std::ifstream file(path);

@@ -1,13 +1,9 @@
 #include <iostream>
 #include <optional>
-#include "ephemeris.hpp"
-#include "propagation_context.hpp"
-#include "utils.hpp"
-#include "simulation.hpp"
 #include <cuda_runtime.h>
-#include "propagate.cuh"
-#include "constants.cuh"
-#include "device_ephemeris.cuh"
+#include "utils.hpp"
+#include "simulation/simulation.hpp"
+#include "simulation/propagate.cuh"
 
 // TODO take config file as command line argument
 // TODO ensure simulation is stopped if number of steps exceed given value

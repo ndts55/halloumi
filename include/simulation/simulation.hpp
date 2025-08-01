@@ -1,17 +1,16 @@
 #pragma once
 #include <nlohmann/json.hpp>
-#include "propagation_context.hpp"
-#include "types.hpp"
-#include "ephemeris.hpp"
-#include "rkf_parameters.hpp"
+#include "core/types.hpp"
+#include "simulation/propagation_context.hpp"
+#include "simulation/ephemeris.hpp"
+#include "simulation/rkf_parameters.hpp"
 
 struct Simulation
 {
     PropagationContext propagation_context;
     const Ephemeris ephemeris;
     const RKFParameters rkf_parameters;
-    // ? with_collisison: bool
-    // ? validation : Validation struct
+    // TODO const ActiveBodies or Environment type
 
     Simulation(
         PropagationContext &&pc,

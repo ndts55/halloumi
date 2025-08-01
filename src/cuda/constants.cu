@@ -1,6 +1,6 @@
-#include "constants.cuh"
-#include "rkf_parameters.hpp"
-#include "device_ephemeris.cuh"
+#include "cuda/constants.cuh"
+#include "simulation/rkf_parameters.hpp"
+#include "cuda/device_ephemeris.cuh"
 
 // Define the constant memory for RKF parameters
 __constant__ RKFParameters device_rkf_parameters;

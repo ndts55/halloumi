@@ -1,10 +1,10 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include "types.hpp"
-#include "simulation.hpp"
+#include "core/types.hpp"
+#include "simulation/simulation.hpp"
 #include "utils.hpp"
-#include "propagation_context.hpp"
-#include "ephemeris.hpp"
+#include "simulation/propagation_context.hpp"
+#include "simulation/ephemeris.hpp"
 
 Simulation Simulation::from_json(const nlohmann::json &configuration)
 {

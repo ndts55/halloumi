@@ -1,7 +1,9 @@
 #pragma once
-#include "types.hpp"
+#include "core/types.hpp"
 #include <cstddef>
+#include <cuda_runtime.h>
 
+// TODO create device tableau
 namespace RKF78
 {
     constexpr Integer OdeOrder = 1;

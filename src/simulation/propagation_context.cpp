@@ -1,8 +1,8 @@
-#include "propagation_context.hpp"
+#include "simulation/propagation_context.hpp"
 #include <iostream>
 #include <format>
 #include "utils.hpp"
-#include "cuda_array.hpp"
+#include "cuda/cuda_array.hpp"
 
 PropagationContext::PropagationContext(
     PropagationState &&propagation_state,

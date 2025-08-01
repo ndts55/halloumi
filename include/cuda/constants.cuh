@@ -1,6 +1,6 @@
 #pragma once
-#include "rkf_parameters.hpp"
-#include "device_ephemeris.cuh"
+#include "simulation/rkf_parameters.hpp"
+#include "cuda/device_ephemeris.cuh"
 #include <cuda_runtime.h>
 
 extern __constant__ RKFParameters device_rkf_parameters;

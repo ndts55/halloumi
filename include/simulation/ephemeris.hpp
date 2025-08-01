@@ -1,7 +1,7 @@
 #pragma once
 #include <nlohmann/json.hpp>
-#include "types.hpp"
-#include "cuda_array.hpp"
+#include "core/types.hpp"
+#include "cuda/cuda_array.hpp"
 
 enum IntMembers
 {

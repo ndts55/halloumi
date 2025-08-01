@@ -1,12 +1,12 @@
 #include <cuda_runtime.h>
 #include <iostream>
 #include <cstdlib>
-#include "propagate.cuh"
-#include "types.hpp"
-#include "simulation.hpp"
-#include "constants.cuh"
-#include "device_ephemeris.cuh"
-#include "tableau.hpp"
+#include "core/types.hpp"
+#include "cuda/constants.cuh"
+#include "cuda/device_ephemeris.cuh"
+#include "simulation/propagate.cuh"
+#include "simulation/simulation.hpp"
+#include "simulation/tableau.hpp"
 
 #pragma region CUDA Helpers
 
@@ -111,78 +111,78 @@ __global__ void evaluate_ode(
     const DeviceArray1D<bool> termination_flags,
     const Integer center_of_integration)
 {
-    auto index = index_in_grid();
-    if (index >= termination_flags.n_vecs || termination_flags.at(index))
-    {
-        return;
-    }
+    // auto index = index_in_grid();
+    // if (index >= termination_flags.n_vecs || termination_flags.at(index))
+    // {
+    //     return;
+    // }
 
-    const auto dt = next_dts.at(index);
-    const auto epoch = epochs.at(index);
+    // const auto dt = next_dts.at(index);
+    // const auto epoch = epochs.at(index);
 
-    for (auto stage = 0; stage < RKF78::NStages; ++stage)
-    {
-        const auto node_c = RKF78::node(stage);
-        Float state[STATE_DIM] = {0.0f};
+    // for (auto stage = 0; stage < RKF78::NStages; ++stage)
+    // {
+    //     const auto node_c = RKF78::node(stage);
+    //     Float state[STATE_DIM] = {0.0f};
 
-        // sum intermediate d_states up to stage
-        for (auto st = 0; st < stage; ++st)
-        {
-            auto coefficient = RKF78::coefficient(stage, st);
-            // state += coefficient * d_states.at(st, index)
-            for (auto dim = 0; dim < STATE_DIM; ++dim)
-            {
-                state[dim] += coefficient * d_states.at(dim, st, index);
-            }
-        }
+    //     // sum intermediate d_states up to stage
+    //     for (auto st = 0; st < stage; ++st)
+    //     {
+    //         auto coefficient = RKF78::coefficient(stage, st);
+    //         // state += coefficient * d_states.at(st, index)
+    //         for (auto dim = 0; dim < STATE_DIM; ++dim)
+    //         {
+    //             state[dim] += coefficient * d_states.at(dim, st, index);
+    //         }
+    //     }
 
-        // add the current state
-        // state = states.at(index) + dt * state
-        for (auto dim = 0; dim < STATE_DIM; ++dim)
-        {
-            state[dim] *= dt;
-            state[dim] += states.at(dim, index);
-        }
+    //     // add the current state
+    //     // state = states.at(index) + dt * state
+    //     for (auto dim = 0; dim < STATE_DIM; ++dim)
+    //     {
+    //         state[dim] *= dt;
+    //         state[dim] += states.at(dim, index);
+    //     }
 
-        // TODO calculate the new velocity
-        // dStates.template stage<stage>()[idx] = ode.eval(idx, state, t + c * dt);
-        //     Vec3R physeval = physeval_(idx, state, t);
-        //         (*this)[idx] = StateT::toPhysicalState(state); // What is `this` in this case?
-        //         Real epoch   = StateT::getPhysicalTime(state, t);
-        //         return this->physics_.eval(idx, (*this)[idx], epoch, this->getCOI(idx));
-        //             Vec3R pos = state.pos();
-        //             Vec3R vel = state.vel();
-        //             Real t    = epoch;
-        //             Vec3R acc = accs().eval(pos, vel, t, COI, this->env());
-        //                         Vec3R acc;
-        //                         if (COI == 0) {
-        //                             for (mSize_t i = 0; i < env.ephemeris().activeBodies().size(); i++) {
-        //                                 brie::NaifId target = env.ephemeris().activeBodies()[i];
-        //                                 Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
-        //                                 acc += thirdBody<true>(
-        //                                     pos, bodyPos, env.constants().body(target).gm());
-        //                             }
-        //                         } else {
-        //                             for (mSize_t i = 0; i < env.ephemeris().activeBodies().size(); i++) {
-        //                                 brie::NaifId target = env.ephemeris().activeBodies()[i];
-        //                                 if (target != COI) {
-        //                                     Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
-        //                                     acc += thirdBody<false>(
-        //                                         pos, bodyPos, env.constants().body(target).gm());
-        //                                 } else {
-        //                                     acc += twoBody(pos, env.constants().body(target).gm());
-        //                                 }
-        //                             }
-        //                         }
-        //                         return acc;
-        //             return acc;
-        //     return StateT::template ODEcast<ORDER>(state, physeval);
-        //         Vec6R out;
-        //         out.head<3>() = state.vel();
-        //         out.tail<3>() = physicalAcc;
-        //         return out;
-        // TODO put results in d_states
-    }
+    //     // TODO calculate the new velocity
+    //     // dStates.template stage<stage>()[idx] = ode.eval(idx, state, t + c * dt);
+    //     //     Vec3R physeval = physeval_(idx, state, t);
+    //     //         (*this)[idx] = StateT::toPhysicalState(state); // What is `this` in this case?
+    //     //         Real epoch   = StateT::getPhysicalTime(state, t);
+    //     //         return this->physics_.eval(idx, (*this)[idx], epoch, this->getCOI(idx));
+    //     //             Vec3R pos = state.pos();
+    //     //             Vec3R vel = state.vel();
+    //     //             Real t    = epoch;
+    //     //             Vec3R acc = accs().eval(pos, vel, t, COI, this->env());
+    //     //                         Vec3R acc;
+    //     //                         if (COI == 0) {
+    //     //                             for (mSize_t i = 0; i < env.ephemeris().activeBodies().size(); i++) {
+    //     //                                 brie::NaifId target = env.ephemeris().activeBodies()[i];
+    //     //                                 Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
+    //     //                                 acc += thirdBody<true>(
+    //     //                                     pos, bodyPos, env.constants().body(target).gm());
+    //     //                             }
+    //     //                         } else {
+    //     //                             for (mSize_t i = 0; i < env.ephemeris().activeBodies().size(); i++) {
+    //     //                                 brie::NaifId target = env.ephemeris().activeBodies()[i];
+    //     //                                 if (target != COI) {
+    //     //                                     Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
+    //     //                                     acc += thirdBody<false>(
+    //     //                                         pos, bodyPos, env.constants().body(target).gm());
+    //     //                                 } else {
+    //     //                                     acc += twoBody(pos, env.constants().body(target).gm());
+    //     //                                 }
+    //     //                             }
+    //     //                         }
+    //     //                         return acc;
+    //     //             return acc;
+    //     //     return StateT::template ODEcast<ORDER>(state, physeval);
+    //     //         Vec6R out;
+    //     //         out.head<3>() = state.vel();
+    //     //         out.tail<3>() = physicalAcc;
+    //     //         return out;
+    //     // TODO put results in d_states
+    // }
 }
 
 // __global__ void advance_step(

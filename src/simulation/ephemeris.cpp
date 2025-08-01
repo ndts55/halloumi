@@ -1,9 +1,9 @@
-#include "ephemeris.hpp"
+#include "simulation/ephemeris.hpp"
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include "utils.hpp"
-#include "cuda_array.hpp"
+#include "cuda/cuda_array.hpp"
 
 #pragma region Layout v1
 CudaArray1D<Float> load_ephemeris_data_v1(const nlohmann::json &core)
