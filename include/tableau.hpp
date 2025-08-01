@@ -83,7 +83,7 @@ namespace RKF78
             return c[I];
         }
     }
-    inline float node(std::size_t i)
+    inline Float node(std::size_t i)
     {
         if (i == 0)
         {
