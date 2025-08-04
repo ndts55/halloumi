@@ -4,7 +4,7 @@
 #include <string>
 #include <iostream>
 #include <cuda_runtime.h>
-#include "core/types.hpp"
+#include "core/types.cuh"
 
 nlohmann::json json_from_file(const std::string &path);
 

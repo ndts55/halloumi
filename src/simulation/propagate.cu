@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 #include <cstdlib>
-#include "core/types.hpp"
+#include "core/types.cuh"
 #include "simulation/environment/ephemeris.hpp"
 #include "simulation/propagate.cuh"
 #include "simulation/simulation.hpp"

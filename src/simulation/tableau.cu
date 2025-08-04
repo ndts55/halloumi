@@ -1,5 +1,5 @@
 #include "simulation/tableau.cuh"
-#include "core/types.hpp"
+#include "core/types.cuh"
 #include <cuda_runtime.h>
 
 namespace RKF78

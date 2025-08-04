@@ -1,6 +1,6 @@
 #pragma once
 #include <nlohmann/json.hpp>
-#include "core/types.hpp"
+#include "core/types.cuh"
 #include "cuda/cuda_array.hpp"
 #include <cuda_runtime.h>
 

@@ -1,6 +1,6 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include "core/types.hpp"
+#include "core/types.cuh"
 #include "simulation/simulation.hpp"
 #include "utils.hpp"
 #include "simulation/propagation_context.hpp"

@@ -1,9 +1,9 @@
 #pragma once
 #include <nlohmann/json.hpp>
-#include "core/types.hpp"
+#include "core/types.cuh"
 #include "simulation/propagation_context.hpp"
 #include "simulation/environment/ephemeris.hpp"
-#include "simulation/environment/constants.hpp"
+#include "simulation/environment/constants.cuh"
 #include "simulation/rkf_parameters.cuh"
 
 struct Simulation
