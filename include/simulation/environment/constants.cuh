@@ -14,16 +14,38 @@ enum BodyConstants
     GM,
     NUM_BODY_CONSTANTS
 };
+namespace celestial_constants
+{
+    constexpr Integer SUN_ID = 10;
+    constexpr Integer MOON_ID = 301;
+    constexpr Integer EARTH_ID = 399;
+
+    constexpr std::array<Integer, 3> BODY_IDS = {SUN_ID, MOON_ID, EARTH_ID};
+
+    constexpr Float SUN_GM = 1.3271244004193938E+11;
+    constexpr Float MOON_GM = 4.9028000661637961E+03;
+    constexpr Float EARTH_GM = 3.9860043543609598E+05;
+
+    constexpr std::array<std::array<Float, 3>, NUM_BODY_CONSTANTS> BODY_CONSTANTS = {{SUN_GM, MOON_GM, EARTH_GM}};
+    constexpr std::array<Float, 3> BODY_GMS = {SUN_GM, MOON_GM, EARTH_GM};
+
+    constexpr Float SUN_RADIUS = 696342.0;
+    constexpr Float MOON_RADIUS = 1737.5;
+    constexpr Float EARTH_RADIUS = 6378.1366;
+
+    constexpr Float AU = 1.4959787070000000E+08;
+    constexpr Float SPEED_OF_LIGHT = 2.9979245800000000E+05;
+}
 
 struct DeviceConstants
 {
 private:
     DeviceArray1D<Integer> body_ids;
-    DeviceArray2D<Float, NUM_BODY_CONSTANTS> data;
+    DeviceArray1D<Float> gms;
 
 public:
-    DeviceConstants(DeviceArray1D<Integer> &&ids, DeviceArray2D<Float, NUM_BODY_CONSTANTS> &&d)
-        : body_ids(std::move(ids)), data(std::move(d)) {}
+    DeviceConstants(DeviceArray1D<Integer> &&ids, DeviceArray1D<Float> &&g)
+        : body_ids(std::move(ids)), gms(std::move(g)) {}
 
     __device__ inline std::size_t index_of(Integer body_id) const
     {
@@ -39,21 +61,21 @@ public:
 
     __device__ inline Float gm_for(Integer body_id) const
     {
-        auto i = index_of(body_id);
-        return data.at(GM, i);
+        return gms.at(index_of(body_id));
     }
 };
 
 struct Constants
 {
 private:
-    CudaArray1D<Integer> body_ids{10, 301, 399};
-    CudaArray2D<Float, NUM_BODY_CONSTANTS> data{{1.3271244004193938E+11}, {4.9028000661637961E+03}, {3.9860043543609598E+05}};
+    CudaArray1D<Integer> body_ids{celestial_constants::BODY_IDS};
+    CudaArray1D<Float> gms{celestial_constants::BODY_GMS};
+    // CudaArray2D<Float, NUM_BODY_CONSTANTS> data{celestial_constants::BODY_CONSTANTS};
 
 public:
     DeviceConstants get() const
     {
-        return DeviceConstants(body_ids.get(), data.get());
+        return DeviceConstants(body_ids.get(), gms.get());
     }
 
     inline std::size_t n_bodies() const { return body_ids.n_elements(); }

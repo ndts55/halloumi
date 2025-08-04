@@ -78,6 +78,13 @@ public:
         data_ = make_managed_cuda_array<T>(n_elements_);
         std::copy(init_list.begin(), init_list.end(), data_.get());
     }
+    template <typename Container>
+    CudaArray1D(const Container &container, typename std::enable_if<!std::is_same<Container, CudaArray1D<T>>::value>::type * = nullptr)
+        : n_elements_(std::distance(std::begin(container), std::end(container)))
+    {
+        data_ = make_managed_cuda_array<T>(n_elements_);
+        std::copy(std::begin(container), std::end(container), data_.get());
+    }
 
     inline T &at(std::size_t idx)
     {
