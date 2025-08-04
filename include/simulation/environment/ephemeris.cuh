@@ -103,6 +103,11 @@ public:
     {
         return integers.n_vecs;
     }
+
+    __device__ inline std::size_t size() const
+    {
+        return data.n_vecs;
+    }
 };
 
 struct Ephemeris

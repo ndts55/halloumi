@@ -2,7 +2,7 @@
 #include <nlohmann/json.hpp>
 #include "core/types.cuh"
 #include "simulation/propagation_context.hpp"
-#include "simulation/environment/ephemeris.hpp"
+#include "simulation/environment/ephemeris.cuh"
 #include "simulation/environment/constants.cuh"
 #include "simulation/rkf_parameters.cuh"
 #include "cuda/cuda_array.hpp"

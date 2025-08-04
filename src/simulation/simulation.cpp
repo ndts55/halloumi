@@ -4,7 +4,7 @@
 #include "simulation/simulation.hpp"
 #include "utils.hpp"
 #include "simulation/propagation_context.hpp"
-#include "simulation/environment/ephemeris.hpp"
+#include "simulation/environment/ephemeris.cuh"
 
 Simulation Simulation::from_json(const nlohmann::json &configuration)
 {
