@@ -16,17 +16,17 @@ struct PropagationState
 
 struct SamplesData
 {
-    const std::size_t n_vecs;
-    const Integer center_of_integration;
-    const Float duration_in_days;
-    const CudaArray1D<Float> end_epochs;
-    const CudaArray1D<Float> start_epochs;
+    std::size_t n_vecs;
+    Integer center_of_integration;
+    Float duration_in_days;
+    CudaArray1D<Float> end_epochs;
+    CudaArray1D<Float> start_epochs;
 };
 
 struct PropagationContext
 {
     PropagationState propagation_state;
-    const SamplesData samples_data;
+    SamplesData samples_data;
 
     PropagationContext(PropagationState &&propagation_state, SamplesData &&samples_data);
     static PropagationContext from_json(const nlohmann::json &json);
