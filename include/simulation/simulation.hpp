@@ -5,6 +5,10 @@
 #include "simulation/environment/ephemeris.hpp"
 #include "simulation/environment/constants.cuh"
 #include "simulation/rkf_parameters.cuh"
+#include "cuda/cuda_array.hpp"
+#include "simulation/environment/constants.cuh"
+
+using ActiveBodies = CudaArray1D<Integer>;
 
 struct Simulation
 {
@@ -12,6 +16,7 @@ struct Simulation
     Ephemeris ephemeris;
     const RKFParameters rkf_parameters;
     const Constants constants{};
+    const ActiveBodies active_bodies{celestial_constants::BODY_IDS};
 
     Simulation(
         PropagationContext &&pc,
