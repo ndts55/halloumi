@@ -2,6 +2,7 @@
 #include "core/types.hpp"
 #include <nlohmann/json.hpp>
 #include <cstddef>
+#include <cuda_runtime.h>
 
 struct RKFParameters
 {
@@ -19,3 +20,7 @@ struct RKFParameters
 
     static RKFParameters from_json(const nlohmann::json &exec_json);
 };
+
+extern __constant__ RKFParameters device_rkf_parameters;
+
+cudaError_t initialize_rkf_parameters_on_device(const RKFParameters &rkf_parameters);

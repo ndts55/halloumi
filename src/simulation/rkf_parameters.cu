@@ -1,6 +1,18 @@
-#include "simulation/rkf_parameters.hpp"
+#include "simulation/rkf_parameters.cuh"
 #include <nlohmann/json.hpp>
 #include <cuda_runtime.h>
+
+__constant__ RKFParameters device_rkf_parameters;
+
+cudaError_t initialize_rkf_parameters_on_device(const RKFParameters &rkf_parameters)
+{
+    return cudaMemcpyToSymbolAsync(
+        static_cast<const void *>(&device_rkf_parameters),
+        &rkf_parameters,
+        sizeof(RKFParameters),
+        0,
+        cudaMemcpyHostToDevice);
+}
 
 __host__ RKFParameters RKFParameters::from_json(const nlohmann::json &j)
 {
