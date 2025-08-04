@@ -2,21 +2,20 @@
 #include <nlohmann/json.hpp>
 #include "core/types.hpp"
 #include "simulation/propagation_context.hpp"
-#include "simulation/ephemeris.hpp"
+#include "simulation/environment/environment.hpp"
 #include "simulation/rkf_parameters.hpp"
 
 struct Simulation
 {
     PropagationContext propagation_context;
-    const Ephemeris ephemeris;
+    Environment environment;
     const RKFParameters rkf_parameters;
-    // TODO const ActiveBodies or Environment type
 
     Simulation(
         PropagationContext &&pc,
-        Ephemeris &&e,
+        Environment &&e,
         RKFParameters &&rp) : propagation_context(std::move(pc)),
-                              ephemeris(std::move(e)),
+                              environment(std::move(e)),
                               rkf_parameters(std::move(rp)) {}
 
     static Simulation from_json(const nlohmann::json &json);

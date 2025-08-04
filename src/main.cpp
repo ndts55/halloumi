@@ -21,7 +21,7 @@ int main()
 
     std::cout << "Read ephemeris\n"
               << "Bodies: "
-              << simulation.ephemeris.n_bodies() << std::endl;
+              << simulation.environment.ephemeris.n_bodies() << std::endl;
     std::cout << "Read propagation context\n"
               << "States: "
               << simulation.propagation_context.samples_data.n_vecs << std::endl;

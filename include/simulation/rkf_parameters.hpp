@@ -2,7 +2,6 @@
 #include "core/types.hpp"
 #include <nlohmann/json.hpp>
 #include <cstddef>
-#include <cuda_runtime.h>
 
 struct RKFParameters
 {
@@ -18,5 +17,5 @@ struct RKFParameters
     static constexpr Float min_dt_scale = .2;
     static constexpr Float max_dt_scale = 5;
 
-    __host__ static RKFParameters from_json(const nlohmann::json &exec_json);
+    static RKFParameters from_json(const nlohmann::json &exec_json);
 };

@@ -1,4 +1,4 @@
-#include "simulation/ephemeris.hpp"
+#include "simulation/environment/ephemeris.hpp"
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <fstream>
