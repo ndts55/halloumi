@@ -1,4 +1,4 @@
-#include "simulation/tableau.hpp"
+#include "simulation/tableau.cuh"
 #include "core/types.hpp"
 #include <cuda_runtime.h>
 
