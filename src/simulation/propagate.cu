@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "core/types.cuh"
-#include "simulation/environment/ephemeris.hpp"
+#include "simulation/environment/ephemeris.cuh"
 #include "simulation/propagate.cuh"
 #include "simulation/simulation.hpp"
 #include "simulation/tableau.cuh"
@@ -83,7 +83,72 @@ void prepare_device_memory(const Simulation &simulation)
 
 #pragma endregion
 
-#pragma region Vector Operations
+#pragma region Math and Physics Helpers
+
+__device__ inline Float cubed_norm(const Float state_vector[], const Integer &offset, const Integer &dimensionality)
+{
+    Float norm = 0.0;
+    for (Integer i = 0; i < dimensionality; ++i)
+    {
+        auto value = state_vector[offset + i];
+        norm += value * value;
+    }
+    return sqrtf(norm);
+}
+
+__device__ inline Float reciprocal_cubed_norm(const Float state_vector[], const Integer &offset, const Integer &dimensionality)
+{
+    auto n = cubed_norm(state_vector, offset, dimensionality);
+    return n != 0.0 ? 1.0 / (n * n * n) : 0.0;
+}
+
+__device__ inline Integer target_body_index(const DeviceEphemeris &eph, const Integer target)
+{
+    Integer tbc = eph.size();
+    for (Integer i = 0; i < tbc; ++i)
+    {
+        if (eph.target_at(i) == target)
+        {
+            tbc = i;
+            break;
+        }
+    }
+    return tbc;
+}
+
+__device__ Integer common_center(Integer tc, Integer cc, const DeviceEphemeris &eph)
+{
+    if (tc == 0 || cc == 0)
+    {
+        return 0;
+    }
+
+    Integer tcnew, ccnew;
+
+    while (tc != cc && tc != 0 && cc != 0)
+    {
+        tcnew = eph.center_at(target_body_index(eph, tc));
+        if (tcnew == cc)
+        {
+            return tcnew;
+        }
+        ccnew = eph.center_at(target_body_index(eph, cc));
+        if (ccnew == tc)
+        {
+            return ccnew;
+        }
+        tc = tcnew;
+        cc = ccnew;
+    }
+    if (tc == 0 || cc == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return tc;
+    }
+}
 
 #pragma endregion
 
@@ -120,15 +185,16 @@ __global__ void evaluate_ode(
     DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states,
     const DeviceArray1D<Float> next_dts,
     const DeviceArray1D<bool> termination_flags,
-    const Integer center_of_integration)
+    const Integer center_of_integration,
+    DeviceArray1D<Integer> active_bodies,
+    const DeviceConstants constants,
+    const DeviceEphemeris ephemeris)
 {
-    auto index = index_in_grid();
+    const auto index = index_in_grid();
     if (index >= termination_flags.n_vecs || termination_flags.at(index))
     {
         return;
     }
-
-    // TODO bring tableau to constant memory
 
     const auto dt = next_dts.at(index);
     const auto epoch = epochs.at(index);
@@ -158,6 +224,57 @@ __global__ void evaluate_ode(
         }
 
         // TODO calculate the new velocity
+        Float next_velocity[POSITION_DIM] = {0.0};
+        if (center_of_integration == 0)
+        {
+            // TODO
+            for (const auto target : active_bodies)
+            {
+                auto cc = common_center(target, center_of_integration, ephemeris);
+                /*
+                Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
+                    NaifId cc = commonCenter_(target, center);
+                    Vec3R xt = readPosLoop_(epoch, target, cc);
+                        size_t out = this->size();
+                        for (idx_t i = 0; i < out; i++) {
+                            if (this->getTarget(i) == target) {
+                                out = i;
+                                break;
+                            }
+                        }
+                        return out;
+                    Vec3R xc = readPosLoop_(epoch, center, cc);
+                    return xt - xc;
+                acc += thirdBody<false>(pos, bodyPos, env.constants().body(target).gm());
+                    return -gm * (scPos - bodyPos) * (scPos - bodyPos).rCubedNorm() + -gm * bodyPos * bodyPos.rCubedNorm()
+                */
+            }
+        }
+        else
+        {
+            // TODO
+            for (const auto target : active_bodies)
+            {
+                if (target != center_of_integration)
+                {
+                    /*
+                    Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
+                    acc += thirdBody<false>(pos, bodyPos, env.constants().body(target).gm());
+                        return -gm * (scPos - bodyPos) * (scPos - bodyPos).rCubedNorm() + -gm * bodyPos * bodyPos.rCubedNorm()
+                    */
+                }
+                else
+                {
+                    auto gm = constants.gm_for(target);
+                    auto rcn = reciprocal_cubed_norm(state, POSITION_OFFSET, POSITION_DIM);
+                    for (auto i = 0; i < POSITION_DIM; ++i)
+                    {
+                        next_velocity[i] += -gm * state[POSITION_OFFSET + i] * rcn;
+                    }
+                }
+            }
+        }
+
         // dStates.template stage<stage>()[idx] = ode.eval(idx, state, t + c * dt);
         //     Vec3R physeval = physeval_(idx, state, t);
         //         (*this)[idx] = StateT::toPhysicalState(state); // What is `this` in this case?
@@ -180,10 +297,11 @@ __global__ void evaluate_ode(
         //                                 brie::NaifId target = env.ephemeris().activeBodies()[i];
         //                                 if (target != COI) {
         //                                     Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
-        //                                     acc += thirdBody<false>(
-        //                                         pos, bodyPos, env.constants().body(target).gm());
+        //                                     acc += thirdBody<false>(pos, bodyPos, env.constants().body(target).gm());
+        //                                         return -gm * (scPos - bodyPos) * (scPos - bodyPos).rCubedNorm() + -gm * bodyPos * bodyPos.rCubedNorm()
         //                                 } else {
         //                                     acc += twoBody(pos, env.constants().body(target).gm());
+        //                                         return -gm * deltaPos * deltaPos.rCubedNorm();
         //                                 }
         //                             }
         //                         }
