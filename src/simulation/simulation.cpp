@@ -13,6 +13,6 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
 
     return Simulation(
         PropagationContext::from_json(configuration),
-        Environment::from_json(environment_json),
+        Ephemeris::from_brie(environment_json["ephemeris"]),
         RKFParameters::from_json(exec_config["integration"]));
 }
