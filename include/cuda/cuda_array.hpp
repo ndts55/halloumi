@@ -73,6 +73,11 @@ public:
         data_ = make_managed_cuda_array<T>(n_elements_);
         fill_cuda_array(n_elements_, data_, initial_value);
     }
+    CudaArray1D(std::initializer_list<T> init_list) : n_elements_(init_list.size())
+    {
+        data_ = make_managed_cuda_array<T>(n_elements_);
+        std::copy(init_list.begin(), init_list.end(), data_.get());
+    }
 
     inline T &at(std::size_t idx)
     {
@@ -138,6 +143,22 @@ public:
         data_ = make_managed_cuda_array<T>(n_vecs_ * VEC_SIZE);
     }
     CudaArray2D<T, VEC_SIZE> &operator=(CudaArray2D<T, VEC_SIZE> &&other) = default; // Move Assignment
+    CudaArray2D(std::initializer_list<std::initializer_list<T>> init_list)
+        : n_vecs_(init_list.size())
+    {
+        data_ = make_managed_cuda_array<T>(n_vecs_ * VEC_SIZE);
+
+        size_t row = 0;
+        for (const auto &inner_list : init_list)
+        {
+            if (inner_list.size() != VEC_SIZE)
+            {
+                throw std::invalid_argument("Each inner list must contain exactly VEC_SIZE elements");
+            }
+            std::copy(inner_list.begin(), inner_list.end(), data_.get() + row * VEC_SIZE);
+            row++;
+        }
+    }
 
     inline T &at(std::size_t dim, std::size_t idx)
     {
