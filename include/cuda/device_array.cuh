@@ -17,6 +17,12 @@ struct DeviceArray1D
     {
         return data[index];
     }
+
+    // Device-side iterators
+    __device__ inline T* begin() { return data; }
+    __device__ inline T* end() { return data + n_vecs; }
+    __device__ inline const T* cbegin() const { return data; }
+    __device__ inline const T* cend() const { return data + n_vecs; }
 };
 
 template <typename T, std::size_t VEC_SIZE>
@@ -33,6 +39,12 @@ struct DeviceArray2D
     {
         return data[get_2d_index(n_vecs, dim, idx)];
     }
+
+    // Device-side iterators (over the flat data array)
+    __device__ inline T* begin() { return data; }
+    __device__ inline T* end() { return data + n_vecs * VEC_SIZE; }
+    __device__ inline const T* cbegin() const { return data; }
+    __device__ inline const T* cend() const { return data + n_vecs * VEC_SIZE; }
 };
 
 template <typename T, std::size_t VEC_SIZE, std::size_t N_STAGES>
@@ -49,4 +61,10 @@ struct DeviceArray3D
     {
         return data[get_3d_index(n_vecs, dim, stage, idx)];
     }
+
+    // Device-side iterators (over the flat data array)
+    __device__ inline T* begin() { return data; }
+    __device__ inline T* end() { return data + n_vecs * VEC_SIZE * N_STAGES; }
+    __device__ inline const T* cbegin() const { return data; }
+    __device__ inline const T* cend() const { return data + n_vecs * VEC_SIZE * N_STAGES; }
 };
