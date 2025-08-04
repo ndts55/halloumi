@@ -67,12 +67,9 @@ public:
 
 struct Constants
 {
-private:
     CudaArray1D<Integer> body_ids{celestial_constants::BODY_IDS};
     CudaArray1D<Float> gms{celestial_constants::BODY_GMS};
-    // CudaArray2D<Float, NUM_BODY_CONSTANTS> data{celestial_constants::BODY_CONSTANTS};
 
-public:
     DeviceConstants get() const
     {
         return DeviceConstants(body_ids.get(), gms.get());
