@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "core/types.cuh"
+#include "cuda/vec.cuh"
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/propagate.cuh"
 #include "simulation/simulation.hpp"
@@ -85,7 +86,7 @@ void prepare_device_memory(const Simulation &simulation)
 
 #pragma region Math and Physics Helpers
 
-__device__ inline Float cubed_norm(const Float state_vector[], const Integer &offset, const Integer &dimensionality)
+__device__ inline Float cubed_norm(const Vec<Float, STATE_DIM> &state_vector, const Integer &offset, const Integer &dimensionality)
 {
     Float norm = 0.0;
     for (Integer i = 0; i < dimensionality; ++i)
@@ -96,13 +97,13 @@ __device__ inline Float cubed_norm(const Float state_vector[], const Integer &of
     return sqrtf(norm);
 }
 
-__device__ inline Float reciprocal_cubed_norm(const Float state_vector[], const Integer &offset, const Integer &dimensionality)
+__device__ inline Float reciprocal_cubed_norm(const Vec<Float, STATE_DIM> &state_vector, const Integer &offset, const Integer &dimensionality)
 {
     auto n = cubed_norm(state_vector, offset, dimensionality);
     return n != 0.0 ? 1.0 / (n * n * n) : 0.0;
 }
 
-__device__ inline Integer target_body_index(const DeviceEphemeris &eph, const Integer target)
+__device__ inline Integer target_body_index(const DeviceEphemeris &eph, const Integer &target)
 {
     Integer tbc = eph.size();
     for (Integer i = 0; i < tbc; ++i)
@@ -116,7 +117,8 @@ __device__ inline Integer target_body_index(const DeviceEphemeris &eph, const In
     return tbc;
 }
 
-__device__ Integer common_center(Integer tc, Integer cc, const DeviceEphemeris &eph)
+// TODO profile with and without inline
+__device__ Integer common_center(const DeviceEphemeris &eph, Integer tc, Integer cc)
 {
     if (tc == 0 || cc == 0)
     {
@@ -148,6 +150,59 @@ __device__ Integer common_center(Integer tc, Integer cc, const DeviceEphemeris &
     {
         return tc;
     }
+}
+
+__device__ Vec<Float, POSITION_DIM> interpolate_type_2_body_to_position(const DeviceEphemeris &eph, const Integer &body_index, const Float &epoch)
+{
+    auto nintervals = eph.nintervals_at(body_index);
+    auto data_offset = eph.dataoffset_at(body_index);
+    auto pdeg = eph.pdeg_at(body_index);
+
+    // data = [ ...[other data; (data_offset)], interval radius, ...[intervals; (nintervals)], ...[coefficients; (nintervals * (pdeg + 1))] ]
+    auto radius = eph.data_at(data_offset);
+    DeviceArray1D<Float> intervals{/* data pointer */ eph.data.data + data_offset + 1, /* size */ (std::size_t)nintervals};
+    DeviceArray1D<Float> coefficients{/* data pointer */ intervals.end(), /* size */ (std::size_t)nintervals * (pdeg + 1)};
+
+    std::size_t idx = (epoch - intervals.at(0)) / (2 * radius);
+    Float s = (epoch - intervals.at(idx)) / radius - 1.0;
+    Vec<Float, POSITION_DIM> position = {0.0};
+    Vec<Float, POSITION_DIM> w1 = {0.0};
+    Vec<Float, POSITION_DIM> w2 = {0.0};
+    Float s2 = 2 * s;
+    for (auto i = pdeg; i > 0; --i)
+    {
+        w2 = w1;
+        w1 = position;
+        position = (w1 * s2 - w2) + coefficients.at(i * nintervals + idx);
+    }
+    return (position * s - w1) + coefficients.at(idx);
+}
+
+__device__ Vec<Float, POSITION_DIM> read_position(const DeviceEphemeris &eph, const Float &epoch, const Integer &target, const Integer &center)
+{
+    Vec<Float, POSITION_DIM> position = {0.0};
+    if (target == center)
+    {
+        return position;
+    }
+
+    Integer t = target;
+    while (t != center)
+    {
+        auto body_index = target_body_index(eph, t);
+        position += interpolate_type_2_body_to_position(eph, body_index, epoch);
+        t = eph.center_at(body_index);
+    }
+    return position;
+}
+
+__device__ Vec<Float, POSITION_DIM> calculate_position(const DeviceEphemeris &eph, const Float &epoch, const Integer &target, const Integer &center_of_integration)
+{
+    auto cc = common_center(eph, target, center_of_integration);
+    auto xt = read_position(eph, epoch, target, cc);
+    auto xc = read_position(eph, epoch, center_of_integration, cc);
+    xt -= xc;
+    return xt;
 }
 
 #pragma endregion
@@ -202,7 +257,7 @@ __global__ void evaluate_ode(
     for (auto stage = 0; stage < RKF78::NStages; ++stage)
     {
         const auto node_c = RKF78::node(stage);
-        Float state[STATE_DIM] = {0.0f};
+        Vec<Float, STATE_DIM> state = {0.0};
 
         // sum intermediate d_states up to stage
         for (auto st = 0; st < stage; ++st)
@@ -230,24 +285,12 @@ __global__ void evaluate_ode(
             // TODO
             for (const auto target : active_bodies)
             {
-                auto cc = common_center(target, center_of_integration, ephemeris);
                 /*
                 Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
-                    NaifId cc = commonCenter_(target, center);
-                    Vec3R xt = readPosLoop_(epoch, target, cc);
-                        size_t out = this->size();
-                        for (idx_t i = 0; i < out; i++) {
-                            if (this->getTarget(i) == target) {
-                                out = i;
-                                break;
-                            }
-                        }
-                        return out;
-                    Vec3R xc = readPosLoop_(epoch, center, cc);
-                    return xt - xc;
                 acc += thirdBody<false>(pos, bodyPos, env.constants().body(target).gm());
                     return -gm * (scPos - bodyPos) * (scPos - bodyPos).rCubedNorm() + -gm * bodyPos * bodyPos.rCubedNorm()
                 */
+                auto body_position = calculate_position(ephemeris, epoch, target, center_of_integration);
             }
         }
         else
@@ -262,6 +305,7 @@ __global__ void evaluate_ode(
                     acc += thirdBody<false>(pos, bodyPos, env.constants().body(target).gm());
                         return -gm * (scPos - bodyPos) * (scPos - bodyPos).rCubedNorm() + -gm * bodyPos * bodyPos.rCubedNorm()
                     */
+                    auto body_position = calculate_position(ephemeris, epoch, target, center_of_integration);
                 }
                 else
                 {
