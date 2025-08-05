@@ -21,7 +21,7 @@ struct Vec
         return N;
     }
 
-    __host__ __device__ Vec<T, N> operator+(const Vec<T, N> &other) const
+    __host__ __device__ inline Vec<T, N> operator+(const Vec<T, N> &other) const
     {
         Vec<T, N> result;
         for (std::size_t i = 0; i < N; ++i)
@@ -31,7 +31,7 @@ struct Vec
         return result;
     }
 
-    __host__ __device__ Vec<T, N> operator-(const Vec<T, N> &other) const
+    __host__ __device__ inline Vec<T, N> operator-(const Vec<T, N> &other) const
     {
         Vec<T, N> result;
         for (std::size_t i = 0; i < N; ++i)
@@ -41,17 +41,68 @@ struct Vec
         return result;
     }
 
-    __host__ __device__ Vec<T, N> &operator+=(const Vec<T, N> &other)
+    __host__ __device__ inline Vec<T, N> &operator+=(const Vec<T, N> &other)
     {
         for (std::size_t i = 0; i < N; ++i)
             data[i] += other.data[i];
         return *this;
     }
 
-    __host__ __device__ Vec<T, N> &operator-=(const Vec<T, N> &other)
+    __host__ __device__ inline Vec<T, N> &operator-=(const Vec<T, N> &other)
     {
         for (std::size_t i = 0; i < N; ++i)
             data[i] -= other.data[i];
+        return *this;
+    }
+
+    __host__ __device__ inline Vec<T, N> operator*(const T scalar) const
+    {
+        Vec<T, N> result;
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            result[i] = data[i] * scalar;
+        }
+        return result;
+    }
+
+    __host__ __device__ inline Vec<T, N> &operator*=(const T scalar)
+    {
+        for (std::size_t i = 0; i < N; ++i)
+            data[i] *= scalar;
+        return *this;
+    }
+
+    __host__ __device__ inline Vec<T, N> operator+(const T scalar) const
+    {
+        Vec<T, N> result;
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            result[i] = data[i] + scalar;
+        }
+        return result;
+    }
+
+    __host__ __device__ inline Vec<T, N> operator-(const T scalar) const
+    {
+        Vec<T, N> result;
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            result[i] = data[i] - scalar;
+        }
+        return result;
+    }
+
+    __host__ __device__ inline Vec<T, N> &operator+=(const T scalar)
+    {
+        for (std::size_t i = 0; i < N; ++i)
+            data[i] += scalar;
+        return *this;
+    }
+
+    __host__ __device__ inline Vec<T, N> &operator-=(const T scalar)
+    {
+        for (std::size_t i = 0; i < N; ++i)
+            data[i] -= scalar;
         return *this;
     }
 
