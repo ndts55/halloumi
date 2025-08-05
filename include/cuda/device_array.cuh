@@ -6,6 +6,7 @@ template <typename T>
 struct DeviceArray1D
 {
     T *data;
+    // TODO rename to n_elements
     std::size_t n_vecs;
 
     __device__ inline T &at(std::size_t index)
@@ -19,10 +20,10 @@ struct DeviceArray1D
     }
 
     // Device-side iterators
-    __device__ inline T* begin() { return data; }
-    __device__ inline T* end() { return data + n_vecs; }
-    __device__ inline const T* cbegin() const { return data; }
-    __device__ inline const T* cend() const { return data + n_vecs; }
+    __device__ inline T *begin() { return data; }
+    __device__ inline T *end() { return data + n_vecs; }
+    __device__ inline const T *cbegin() const { return data; }
+    __device__ inline const T *cend() const { return data + n_vecs; }
 };
 
 template <typename T, std::size_t VEC_SIZE>
@@ -41,10 +42,10 @@ struct DeviceArray2D
     }
 
     // Device-side iterators (over the flat data array)
-    __device__ inline T* begin() { return data; }
-    __device__ inline T* end() { return data + n_vecs * VEC_SIZE; }
-    __device__ inline const T* cbegin() const { return data; }
-    __device__ inline const T* cend() const { return data + n_vecs * VEC_SIZE; }
+    __device__ inline T *begin() { return data; }
+    __device__ inline T *end() { return data + n_vecs * VEC_SIZE; }
+    __device__ inline const T *cbegin() const { return data; }
+    __device__ inline const T *cend() const { return data + n_vecs * VEC_SIZE; }
 };
 
 template <typename T, std::size_t VEC_SIZE, std::size_t N_STAGES>
@@ -63,8 +64,8 @@ struct DeviceArray3D
     }
 
     // Device-side iterators (over the flat data array)
-    __device__ inline T* begin() { return data; }
-    __device__ inline T* end() { return data + n_vecs * VEC_SIZE * N_STAGES; }
-    __device__ inline const T* cbegin() const { return data; }
-    __device__ inline const T* cend() const { return data + n_vecs * VEC_SIZE * N_STAGES; }
+    __device__ inline T *begin() { return data; }
+    __device__ inline T *end() { return data + n_vecs * VEC_SIZE * N_STAGES; }
+    __device__ inline const T *cbegin() const { return data; }
+    __device__ inline const T *cend() const { return data + n_vecs * VEC_SIZE * N_STAGES; }
 };
