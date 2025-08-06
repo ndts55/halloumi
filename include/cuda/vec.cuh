@@ -52,7 +52,7 @@ struct Vec
 
 #pragma endregion
 
-#pragma region Norms
+#pragma region Vector Operations
 
     __host__ __device__ inline T squared_norm() const
     {
@@ -73,6 +73,36 @@ struct Vec
     __host__ __device__ inline T reciprocal_cubed_norm() const
     {
         return 1.0 / cubed_norm();
+    }
+
+    __host__ __device__ inline Vec<T, N> componentwise_abs() const
+    {
+        Vec<T, N> result;
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            result[i] = abs(data[i]);
+        }
+        return result;
+    }
+
+    __host__ __device__ inline Vec<T, N> componentwise_max(const Vec<T, N> &other) const
+    {
+        Vec<T, N> result;
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            result[i] = max(data[i], other[i]);
+        }
+        return result;
+    }
+
+    __host__ __device__ inline T max_norm() const
+    {
+        T max_value = data[0];
+        for (std::size_t i = 1; i < N; ++i)
+        {
+            max_value = max(max_value, data[i]);
+        }
+        return max_value;
     }
 
 #pragma endregion
@@ -102,7 +132,9 @@ struct Vec
     __host__ __device__ inline Vec<T, N> &operator+=(const Vec<T, N> &other)
     {
         for (std::size_t i = 0; i < N; ++i)
+        {
             data[i] += other.data[i];
+        }
         return *this;
     }
 
@@ -126,7 +158,9 @@ struct Vec
     __host__ __device__ inline Vec<T, N> &operator*=(const T scalar)
     {
         for (std::size_t i = 0; i < N; ++i)
+        {
             data[i] *= scalar;
+        }
         return *this;
     }
 
@@ -153,14 +187,56 @@ struct Vec
     __host__ __device__ inline Vec<T, N> &operator+=(const T scalar)
     {
         for (std::size_t i = 0; i < N; ++i)
+        {
             data[i] += scalar;
+        }
         return *this;
     }
 
     __host__ __device__ inline Vec<T, N> &operator-=(const T scalar)
     {
         for (std::size_t i = 0; i < N; ++i)
+        {
             data[i] -= scalar;
+        }
+        return *this;
+    }
+
+    __host__ __device__ inline Vec<T, N> operator/(const T scalar) const
+    {
+        Vec<T, N> result;
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            result[i] = data[i] / scalar;
+        }
+        return result;
+    }
+
+    __host__ __device__ inline Vec<T, N> &operator/=(const T scalar)
+    {
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            data[i] /= scalar;
+        }
+        return *this;
+    }
+
+    __host__ __device__ inline Vec<T, N> &operator/(const Vec<T, N> &other) const
+    {
+        Vec<T, N> result;
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            result[i] = data[i] / other[i];
+        }
+        return result;
+    }
+
+    __host__ __device__ inline Vec<T, N> &operator/=(const Vec<T, N> &other)
+    {
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            data[i] /= other[i];
+        }
         return *this;
     }
 
