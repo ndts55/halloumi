@@ -113,38 +113,6 @@ __global__ void evaluate_ode(
 
 #pragma region Advance Step
 
-Vec<Float, STATE_DIM> sum_truncation_error(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states, const CudaIndex &index)
-{
-    // ! Optimization for stage = 0
-    auto accumulator = d_states.vector_at(0, index) * RKF78::embedded_weight(0);
-
-    // ! Starts at 1 because of optimization above
-    for (auto stage = 1; stage < RKF78::NStages; ++stage)
-    {
-        accumulator += d_states.vector_at(stage, index) * RKF78::embedded_weight(stage);
-    }
-
-    return accumulator;
-}
-
-Float clamp_dt(const Float &dt)
-{
-    return min(device_rkf_parameters.max_dt_scale, max(device_rkf_parameters.min_dt_scale, dt));
-}
-
-Vec<Float, STATE_DIM> sum_final_d_states(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states, const CudaIndex &index)
-{
-    // ! Optimization for stage = 0
-    auto state = d_states.vector_at(0, index) * RKF78::weight(0);
-
-    // ! Starts at 1 because of optimization above
-    for (auto stage = 1; stage < RKF78::NStages; ++stage)
-    {
-        state += d_states.vector_at(stage, index) * RKF78::weight(stage);
-    }
-    return state;
-}
-
 __global__ void advance_step(
     // Input data
     const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states,
@@ -167,7 +135,7 @@ __global__ void advance_step(
     const auto dt = next_dts.at(index);
     auto criterion = TimeStepCriterion::from_dts(dt, dt * device_rkf_parameters.max_dt_scale);
 
-    auto current_d_state = sum_final_d_states(d_states, index) * dt + states.vector_at(index);
+    auto current_d_state = calculate_final_d_state(d_states, index) * dt + states.vector_at(index);
     Vec<Float, STATE_DIM> next_state = states.vector_at(index) + current_d_state * dt;
 
     criterion.evaluate_error(
