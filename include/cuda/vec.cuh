@@ -21,6 +21,33 @@ struct Vec
         return N;
     }
 
+    template <std::size_t Start, std::size_t Size>
+    __host__ __device__ inline Vec<T, Size> slice() const
+    {
+        Vec<T, Size> result;
+        for (std::size_t i = 0; i < Size; ++i)
+        {
+            result[i] = data[Start + i];
+        }
+        return result;
+    }
+
+    template <std::size_t TailN, std::size_t TotalN = N + TailN>
+    __host__ __device__ inline Vec<T, TotalN> append(const Vec<T, TailN> &other) const
+    {
+        Vec<T, TotalN> result;
+        for (std::size_t i = 0; i < N; ++i)
+        {
+            result[i] = data[i];
+        }
+
+        for (std::size_t i = 0; i < TailN; ++i)
+        {
+            result[N + i] = other[i];
+        }
+        return result;
+    }
+
     __host__ __device__ inline Vec<T, N> operator+(const Vec<T, N> &other) const
     {
         Vec<T, N> result;
