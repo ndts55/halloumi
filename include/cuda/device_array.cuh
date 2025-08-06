@@ -1,6 +1,7 @@
 #pragma once
 #include <cuda_runtime.h>
 #include "utils.hpp"
+#include "cuda/vec.cuh"
 
 template <typename T>
 struct DeviceArray1D
@@ -32,6 +33,24 @@ struct DeviceArray2D
     T *data;
     std::size_t n_vecs;
 
+    __device__ inline Vec<T, VEC_SIZE> vector_at(std::size_t idx) const
+    {
+        Vec<T, VEC_SIZE> vec;
+        for (std::size_t dim = 0; dim < VEC_SIZE; ++dim)
+        {
+            vec[dim] = at(dim, idx);
+        }
+        return vec;
+    }
+
+    __device__ inline void set_vector_at(std::size_t idx, const Vec<T, VEC_SIZE> &vec)
+    {
+        for (std::size_t dim = 0; dim < VEC_SIZE; ++dim)
+        {
+            at(dim, idx) = vec[dim];
+        }
+    }
+
     __device__ inline T &at(std::size_t dim, std::size_t idx)
     {
         return data[get_2d_index(n_vecs, dim, idx)];
@@ -53,6 +72,24 @@ struct DeviceArray3D
 {
     T *data;
     std::size_t n_vecs;
+
+    __device__ inline Vec<T, VEC_SIZE> vector_at(std::size_t stage, std::size_t idx) const
+    {
+        Vec<T, VEC_SIZE> vec;
+        for (std::size_t dim = 0; dim < VEC_SIZE; ++dim)
+        {
+            vec[dim] = at(dim, stage, idx);
+        }
+        return vec;
+    }
+
+    __device__ inline void set_vector_at(std::size_t stage, std::size_t idx, const Vec<T, VEC_SIZE> &vec)
+    {
+        for (std::size_t dim = 0; dim < VEC_SIZE; ++dim)
+        {
+            at(dim, stage, idx) = vec[dim];
+        }
+    }
 
     __device__ inline T &at(std::size_t dim, std::size_t stage, std::size_t idx)
     {
