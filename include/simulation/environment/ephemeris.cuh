@@ -107,6 +107,54 @@ struct DeviceEphemeris
     {
         return data.n_vecs;
     }
+
+    // Helper methods
+    __device__ inline Integer index_of_target(const Integer &target) const
+    {
+        for (auto i = 0; i < n_bodies(); ++i)
+        {
+            if (target_at(i) == target)
+            {
+                return i;
+            }
+        }
+        return n_bodies();
+    }
+
+    // TODO profile with and without inline
+    __device__ Integer common_center(Integer tc, Integer cc) const
+    {
+        if (tc == 0 || cc == 0)
+        {
+            return 0;
+        }
+
+        Integer tcnew, ccnew;
+
+        while (tc != cc && tc != 0 && cc != 0)
+        {
+            tcnew = center_at(index_of_target(tc));
+            if (tcnew == cc)
+            {
+                return tcnew;
+            }
+            ccnew = center_at(index_of_target(cc));
+            if (ccnew == tc)
+            {
+                return ccnew;
+            }
+            tc = tcnew;
+            cc = ccnew;
+        }
+        if (tc == 0 || cc == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            return tc;
+        }
+    }
 };
 
 struct Ephemeris
