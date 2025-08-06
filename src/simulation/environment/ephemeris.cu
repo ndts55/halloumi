@@ -4,6 +4,8 @@
 #include <fstream>
 #include "utils.hpp"
 #include "cuda/cuda_array.hpp"
+#include <cuda_runtime.h>
+#include "cuda/vec.cuh"
 
 #pragma region Layout v1
 CudaArray1D<Float> load_ephemeris_data_v1(const nlohmann::json &core)
@@ -94,6 +96,8 @@ Ephemeris load_brie_v2(const nlohmann::json &core)
 }
 #pragma endregion
 
+#pragma region Ephemeris::from_brie
+
 std::string get_brie_file(const nlohmann::json &json)
 {
     if (json.is_string())
@@ -130,3 +134,67 @@ Ephemeris Ephemeris::from_brie(const nlohmann::json &json)
 
     return load_brie_v2(core);
 }
+
+#pragma endregion
+
+#pragma region DeviceEphemeris::calculate_position
+
+/*
+Reconstructs a continuous position vector from discrete Chebyshev coefficients stored in the ephemeris data.
+*/
+__device__ Vec<Float, POSITION_DIM> interpolate_type_2_body_to_position(const DeviceEphemeris &eph, const Integer &body_index, const Float &epoch)
+{
+    auto nintervals = eph.nintervals_at(body_index);
+    auto data_offset = eph.dataoffset_at(body_index);
+    auto pdeg = eph.pdeg_at(body_index);
+
+    // data = [ ...[other data; (data_offset)], interval radius, ...[intervals; (nintervals)], ...[coefficients; (nintervals * (pdeg + 1))] ]
+    auto radius = eph.data_at(data_offset);
+    DeviceArray1D<Float> intervals{/* data pointer */ eph.data.data + data_offset + 1, /* size */ (std::size_t)nintervals};
+    DeviceArray1D<Float> coefficients{/* data pointer */ intervals.end(), /* size */ (std::size_t)nintervals * (pdeg + 1)};
+
+    std::size_t idx = (epoch - intervals.at(0)) / (2 * radius); // interval selection
+    Float s = (epoch - intervals.at(idx)) / radius - 1.0;       // normalized  time coordinate
+    // use clenshaw recurrence relation to efficiently calculate chebyshev polynomials
+    Vec<Float, POSITION_DIM> position = {0.0};
+    Vec<Float, POSITION_DIM> w1 = {0.0};
+    Vec<Float, POSITION_DIM> w2 = {0.0};
+    Float s2 = 2 * s;
+    for (auto i = pdeg; i > 0; --i)
+    {
+        w2 = w1;
+        w1 = position;
+        position = (w1 * s2 - w2) + coefficients.at(i * nintervals + idx);
+    }
+    return (position * s - w1) + coefficients.at(idx);
+}
+
+__device__ Vec<Float, POSITION_DIM> read_position(const DeviceEphemeris &eph, const Float &epoch, const Integer &target, const Integer &center)
+{
+    Vec<Float, POSITION_DIM> position = {0.0};
+    if (target == center)
+    {
+        return position;
+    }
+
+    Integer t = target;
+    while (t != center)
+    {
+        auto body_index = eph.index_of_target(t);
+        // ! We only have type 2 bodies for now.
+        position += interpolate_type_2_body_to_position(eph, body_index, epoch);
+        t = eph.center_at(body_index);
+    }
+    return position;
+}
+
+__device__ Vec<Float, POSITION_DIM> DeviceEphemeris::calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const
+{
+    auto cc = common_center(target, center_of_integration);
+    auto xt = read_position(*this, epoch, target, cc);
+    auto xc = read_position(*this, epoch, center_of_integration, cc);
+    xt -= xc;
+    return xt;
+}
+
+#pragma endregion

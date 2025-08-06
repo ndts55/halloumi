@@ -1,8 +1,9 @@
 #pragma once
 #include <nlohmann/json.hpp>
+#include <cuda_runtime.h>
 #include "core/types.cuh"
 #include "cuda/cuda_array.hpp"
-#include <cuda_runtime.h>
+#include "cuda/vec.cuh"
 
 enum IntMembers
 {
@@ -155,6 +156,8 @@ struct DeviceEphemeris
             return tc;
         }
     }
+
+    __device__ Vec<Float, POSITION_DIM> calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const;
 };
 
 struct Ephemeris
