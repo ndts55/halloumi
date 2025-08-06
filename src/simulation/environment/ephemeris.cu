@@ -11,7 +11,6 @@ CudaArray1D<Float> load_ephemeris_data_v1(const nlohmann::json &core)
     std::size_t data_size = std::accumulate(core.begin(), core.end(), 0, [](const nlohmann::json &a, const nlohmann::json &b)
                                             { return a["data"].size() + b["data"].size(); });
     CudaArray1D<Float> bodies(data_size);
-    std::size_t idx = 0;
     auto bodies_iterator = bodies.data().get();
     for (auto body : core)
     {
