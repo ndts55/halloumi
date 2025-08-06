@@ -19,6 +19,17 @@ __device__ inline CudaIndex index_in_block()
     return threadIdx.x;
 }
 
+std::size_t block_size()
+{
+    const char *env_block = std::getenv("HALLOUMI_BLOCK_SIZE");
+    return env_block ? std::stoi(env_block) : 128;
+}
+
+std::size_t grid_size(std::size_t block_size, std::size_t n_samples)
+{
+    return (n_samples + block_size - 1) / block_size;
+}
+
 void check_cuda_error(cudaError_t error, const std::string &message = "CUDA error")
 {
     if (error != cudaSuccess)
@@ -45,8 +56,8 @@ void prefetch_propagation_context(const PropagationContext &propagation_context)
     check_cuda_error(propagation_context.propagation_state.states.prefetch());
     check_cuda_error(propagation_context.propagation_state.epochs.prefetch());
     check_cuda_error(propagation_context.propagation_state.terminated.prefetch());
-    check_cuda_error(propagation_context.propagation_state.dt_last.prefetch());
-    check_cuda_error(propagation_context.propagation_state.dt_next.prefetch());
+    check_cuda_error(propagation_context.propagation_state.last_dts.prefetch());
+    check_cuda_error(propagation_context.propagation_state.next_dts.prefetch());
     check_cuda_error(propagation_context.propagation_state.simulation_ended.prefetch());
     check_cuda_error(propagation_context.propagation_state.backwards.prefetch());
     check_cuda_error(propagation_context.samples_data.end_epochs.prefetch());
