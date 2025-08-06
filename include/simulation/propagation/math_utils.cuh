@@ -99,16 +99,13 @@ __device__ Vec<Float, STATE_DIM> calculate_state_delta(
 
 __device__ Vec<Float, STATE_DIM> calculate_truncation_error(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states, const CudaIndex &index)
 {
-    // ! Optimization for stage = 0
-    auto accumulator = d_states.vector_at(0, index) * RKF78::embedded_weight(0);
-
-    // ! Starts at 1 because of optimization above
-    for (auto stage = 1; stage < RKF78::NStages; ++stage)
+    Vec<Float, STATE_DIM> sum{0.0};
+    for (auto stage = 0; stage < RKF78::NStages; ++stage)
     {
-        accumulator += d_states.vector_at(stage, index) * RKF78::embedded_weight(stage);
+        sum += d_states.vector_at(stage, index) * RKF78::embedded_weight(stage);
     }
 
-    return accumulator;
+    return sum;
 }
 
 __device__ Float clamp_dt(const Float &dt)
@@ -118,13 +115,11 @@ __device__ Float clamp_dt(const Float &dt)
 
 __device__ Vec<Float, STATE_DIM> calculate_final_d_state(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states, const CudaIndex &index)
 {
-    // ! Optimization for stage = 0
-    auto state = d_states.vector_at(0, index) * RKF78::weight(0);
+    Vec<Float, STATE_DIM> sum{0.0};
 
-    // ! Starts at 1 because of optimization above
-    for (auto stage = 1; stage < RKF78::NStages; ++stage)
+    for (auto stage = 0; stage < RKF78::NStages; ++stage)
     {
-        state += d_states.vector_at(stage, index) * RKF78::weight(stage);
+        sum += d_states.vector_at(stage, index) * RKF78::weight(stage);
     }
-    return state;
+    return sum;
 }
