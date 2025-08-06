@@ -86,21 +86,28 @@ void prepare_device_memory(const Simulation &simulation)
 
 #pragma region Math and Physics Helpers
 
-__device__ inline Float cubed_norm(const Vec<Float, STATE_DIM> &state_vector, const Integer &offset, const Integer &dimensionality)
+template <std::size_t dim>
+__device__ inline Float squared_norm(const Vec<Float, dim> &vector)
 {
     Float norm = 0.0;
-    for (Integer i = 0; i < dimensionality; ++i)
+    for (const Float &v : vector)
     {
-        auto value = state_vector[offset + i];
-        norm += value * value;
+        norm += v * v;
     }
-    return sqrtf(norm);
+    return norm;
 }
 
-__device__ inline Float reciprocal_cubed_norm(const Vec<Float, STATE_DIM> &state_vector, const Integer &offset, const Integer &dimensionality)
+template <std::size_t dim>
+__device__ inline Float cubed_norm(const Vec<Float, dim> &vector)
 {
-    auto n = cubed_norm(state_vector, offset, dimensionality);
-    return n != 0.0 ? 1.0 / (n * n * n) : 0.0;
+    const auto sn = squared_norm(vector);
+    return sn * sqrtf(sn);
+}
+
+template <std::size_t dim>
+__device__ inline Float reciprocal_cubed_norm(const Vec<Float, dim> &vector)
+{
+    return 1.0 / cubed_norm(vector);
 }
 
 __device__ inline Integer target_body_index(const DeviceEphemeris &eph, const Integer &target)
@@ -190,6 +197,7 @@ __device__ Vec<Float, POSITION_DIM> read_position(const DeviceEphemeris &eph, co
     while (t != center)
     {
         auto body_index = target_body_index(eph, t);
+        // ! We only have type 2 bodies for now.
         position += interpolate_type_2_body_to_position(eph, body_index, epoch);
         t = eph.center_at(body_index);
     }
@@ -203,6 +211,101 @@ __device__ Vec<Float, POSITION_DIM> calculate_position(const DeviceEphemeris &ep
     auto xc = read_position(eph, epoch, center_of_integration, cc);
     xt -= xc;
     return xt;
+}
+
+__device__ Vec<Float, STATE_DIM> calculate_current_state(
+    const int &stage,
+    const DeviceArray2D<Float, STATE_DIM> &states,
+    const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states,
+    const CudaIndex &index,
+    const Float &dt)
+{
+    Vec<Float, STATE_DIM> state = {0.0};
+
+    // sum intermediate d_states up to stage
+    for (auto st = 0; st < stage; ++st)
+    {
+        auto coefficient = RKF78::coefficient(stage, st);
+        // state += coefficient * d_states.at(st, index)
+        for (auto dim = 0; dim < STATE_DIM; ++dim)
+        {
+            state[dim] += coefficient * d_states.at(dim, st, index);
+        }
+    }
+
+    // add the current state
+    // state = states.at(index) + dt * state
+    for (auto dim = 0; dim < STATE_DIM; ++dim)
+    {
+        state[dim] *= dt;
+        state[dim] += states.at(dim, index);
+    }
+    return state;
+}
+
+__device__ inline Vec<Float, VELOCITY_DIM> two_body(const Vec<Float, POSITION_DIM> &position_delta, const Float &gm)
+{
+    return position_delta * -gm * reciprocal_cubed_norm(position_delta);
+}
+
+__device__ inline Vec<Float, VELOCITY_DIM> three_body_barycentric(const Vec<Float, POSITION_DIM> &source_position, const Vec<Float, POSITION_DIM> &body_position, const Float &gm)
+{
+    return two_body(source_position - body_position, gm);
+}
+
+__device__ Vec<Float, VELOCITY_DIM> three_body_non_barycentric(const Vec<Float, POSITION_DIM> &source_position, const Vec<Float, POSITION_DIM> &body_position, const Float &gm)
+{
+    return three_body_barycentric(source_position, body_position, gm) + two_body(body_position, gm);
+}
+
+__device__ Vec<Float, VELOCITY_DIM> calculate_velocity_delta(
+    const DeviceConstants &constants,
+    const DeviceEphemeris &ephemeris,
+    const Integer &epoch,
+    DeviceArray1D<Integer> &active_bodies,
+    const Integer &center_of_integration,
+    const Vec<Float, POSITION_DIM> &state_position)
+{
+    Vec<Float, VELOCITY_DIM> vec{0.0};
+    if (center_of_integration == 0)
+    {
+        for (const auto target : active_bodies)
+        {
+            auto body_position = calculate_position(ephemeris, epoch, target, center_of_integration);
+            vec += three_body_barycentric(state_position, body_position, constants.gm_for(target));
+        }
+    }
+    else
+    {
+        for (const auto target : active_bodies)
+        {
+            if (target != center_of_integration)
+            {
+                auto body_position = calculate_position(ephemeris, epoch, target, center_of_integration);
+                vec += three_body_non_barycentric(state_position, body_position, constants.gm_for(target));
+            }
+            else
+            {
+                auto gm = constants.gm_for(target);
+                vec += two_body(state_position, gm);
+            }
+        }
+    }
+    return vec;
+}
+
+__device__ Vec<Float, STATE_DIM> evaluate_ode_for_stage(
+    const DeviceConstants &constants,
+    const DeviceEphemeris &ephemeris,
+    DeviceArray1D<Integer> &active_bodies,
+    const Integer &center_of_integration,
+    const Integer &t,
+    const Vec<Float, STATE_DIM> &state)
+{
+    // velocity delta, i.e., acceleration
+    auto velocity_delta = calculate_velocity_delta(constants, ephemeris, t, active_bodies, center_of_integration, state.slice<POSITION_OFFSET, POSITION_DIM>());
+    // Velocity of previous state becomes position delta
+    return state.slice<VELOCITY_OFFSET, VELOCITY_DIM>().append(velocity_delta);
 }
 
 #pragma endregion
@@ -256,107 +359,13 @@ __global__ void evaluate_ode(
 
     for (auto stage = 0; stage < RKF78::NStages; ++stage)
     {
-        const auto node_c = RKF78::node(stage);
-        Vec<Float, STATE_DIM> state = {0.0};
-
-        // sum intermediate d_states up to stage
-        for (auto st = 0; st < stage; ++st)
-        {
-            auto coefficient = RKF78::coefficient(stage, st);
-            // state += coefficient * d_states.at(st, index)
-            for (auto dim = 0; dim < STATE_DIM; ++dim)
-            {
-                state[dim] += coefficient * d_states.at(dim, st, index);
-            }
-        }
-
-        // add the current state
-        // state = states.at(index) + dt * state
+        const auto current_state = calculate_current_state(stage, states, d_states, index, dt);
+        const Float t = epoch + RKF78::node(stage) * dt;
+        auto state_delta = evaluate_ode_for_stage(constants, ephemeris, active_bodies, center_of_integration, t, current_state);
         for (auto dim = 0; dim < STATE_DIM; ++dim)
         {
-            state[dim] *= dt;
-            state[dim] += states.at(dim, index);
+            d_states.at(dim, stage, index) = state_delta[dim];
         }
-
-        // TODO calculate the new velocity
-        Float next_velocity[POSITION_DIM] = {0.0};
-        if (center_of_integration == 0)
-        {
-            // TODO
-            for (const auto target : active_bodies)
-            {
-                /*
-                Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
-                acc += thirdBody<false>(pos, bodyPos, env.constants().body(target).gm());
-                    return -gm * (scPos - bodyPos) * (scPos - bodyPos).rCubedNorm() + -gm * bodyPos * bodyPos.rCubedNorm()
-                */
-                auto body_position = calculate_position(ephemeris, epoch, target, center_of_integration);
-            }
-        }
-        else
-        {
-            // TODO
-            for (const auto target : active_bodies)
-            {
-                if (target != center_of_integration)
-                {
-                    /*
-                    Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
-                    acc += thirdBody<false>(pos, bodyPos, env.constants().body(target).gm());
-                        return -gm * (scPos - bodyPos) * (scPos - bodyPos).rCubedNorm() + -gm * bodyPos * bodyPos.rCubedNorm()
-                    */
-                    auto body_position = calculate_position(ephemeris, epoch, target, center_of_integration);
-                }
-                else
-                {
-                    auto gm = constants.gm_for(target);
-                    auto rcn = reciprocal_cubed_norm(state, POSITION_OFFSET, POSITION_DIM);
-                    for (auto i = 0; i < POSITION_DIM; ++i)
-                    {
-                        next_velocity[i] += -gm * state[POSITION_OFFSET + i] * rcn;
-                    }
-                }
-            }
-        }
-
-        // dStates.template stage<stage>()[idx] = ode.eval(idx, state, t + c * dt);
-        //     Vec3R physeval = physeval_(idx, state, t);
-        //         (*this)[idx] = StateT::toPhysicalState(state); // What is `this` in this case?
-        //         Real epoch   = StateT::getPhysicalTime(state, t);
-        //         return this->physics_.eval(idx, (*this)[idx], epoch, this->getCOI(idx));
-        //             Vec3R pos = state.pos();
-        //             Vec3R vel = state.vel();
-        //             Real t    = epoch;
-        //             Vec3R acc = accs().eval(pos, vel, t, COI, this->env());
-        //                         Vec3R acc;
-        //                         if (COI == 0) {
-        //                             for (mSize_t i = 0; i < env.ephemeris().activeBodies().size(); i++) {
-        //                                 brie::NaifId target = env.ephemeris().activeBodies()[i];
-        //                                 Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
-        //                                 acc += thirdBody<true>(
-        //                                     pos, bodyPos, env.constants().body(target).gm());
-        //                             }
-        //                         } else {
-        //                             for (mSize_t i = 0; i < env.ephemeris().activeBodies().size(); i++) {
-        //                                 brie::NaifId target = env.ephemeris().activeBodies()[i];
-        //                                 if (target != COI) {
-        //                                     Vec3R bodyPos = env.ephemeris().getPosition(epoch, target, COI);
-        //                                     acc += thirdBody<false>(pos, bodyPos, env.constants().body(target).gm());
-        //                                         return -gm * (scPos - bodyPos) * (scPos - bodyPos).rCubedNorm() + -gm * bodyPos * bodyPos.rCubedNorm()
-        //                                 } else {
-        //                                     acc += twoBody(pos, env.constants().body(target).gm());
-        //                                         return -gm * deltaPos * deltaPos.rCubedNorm();
-        //                                 }
-        //                             }
-        //                         }
-        //                         return acc;
-        //             return acc;
-        //     return StateT::template ODEcast<ORDER>(state, physeval);
-        //         Vec6R out;
-        //         out.head<3>() = state.vel();
-        //         out.tail<3>() = physicalAcc;
-        //         return out;
-        // TODO put results in d_states
     }
 }
 
