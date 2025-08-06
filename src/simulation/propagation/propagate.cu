@@ -132,8 +132,28 @@ __global__ void evaluate_ode(
     const auto dt = next_dts.at(index);
     const auto epoch = epochs.at(index);
 
-    // TODO optimization for stage = 0 where no call to calculate_current_state or RKF78::node is needed
-    for (auto stage = 0; stage < RKF78::NStages; ++stage)
+    { // ! Optimization for stage = 0;
+        // Simply read out the state from states
+        Vec<Float, STATE_DIM> current_state{0.0};
+        for (auto dim = 0; dim < STATE_DIM; ++dim)
+        {
+            current_state[dim] = states.at(dim, index);
+        }
+        auto state_delta = calculate_state_delta(
+            constants,
+            ephemeris,
+            active_bodies,
+            center_of_integration,
+            epoch,
+            current_state);
+        for (auto dim = 0; dim < STATE_DIM; ++dim)
+        {
+            d_states.at(dim, 0, index) = state_delta[dim];
+        }
+    }
+
+    // ! Starts at 1 due to optimization above
+    for (auto stage = 1; stage < RKF78::NStages; ++stage)
     {
         const auto current_state = calculate_current_state(stage, states, d_states, index, dt);
         auto state_delta = calculate_state_delta(
