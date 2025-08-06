@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 #include <cstdlib>
+#include <cmath>
 #include "core/types.cuh"
 #include "cuda/vec.cuh"
 #include "simulation/environment/ephemeris.cuh"
@@ -10,8 +11,9 @@
 #include "simulation/rkf_parameters.cuh"
 #include "simulation/propagation/cuda_utils.cuh"
 #include "simulation/propagation/math_utils.cuh"
+#include "simulation/propagation/time_step_criterion.cuh"
 
-#pragma region Kernels
+#pragma region Prepare Simulation Run
 
 __global__ void prepare_simulation_run(
     // Input
@@ -22,7 +24,7 @@ __global__ void prepare_simulation_run(
     DeviceArray1D<bool> termination_flags,
     DeviceArray1D<bool> simulation_ended,
     DeviceArray1D<bool> backwards,
-    DeviceArray1D<Float> dt_next)
+    DeviceArray1D<Float> next_dts)
 {
     const auto i = index_in_grid();
     if (i >= termination_flags.n_vecs)
@@ -37,9 +39,13 @@ __global__ void prepare_simulation_run(
     }
 
     auto span = end_epochs.at(i) - start_epochs.at(i);
-    dt_next.at(i) = copysign(device_rkf_parameters.initial_time_step, span);
+    next_dts.at(i) = copysign(device_rkf_parameters.initial_time_step, span);
     backwards.at(i) = span < 0;
 }
+
+#pragma endregion
+
+#pragma region Evaluate ODE
 
 __global__ void evaluate_ode(
     // Input data
@@ -103,13 +109,112 @@ __global__ void evaluate_ode(
     }
 }
 
-// __global__ void advance_step(
-//     DeviceArray2D<Float, STATE_DIM> states,
-//     DeviceArray1D<Float> next_dts,
-//     DeviceArray1D<Float> last_dts,
-//     DeviceArray1D<Float> epochs,
-//     const DeviceArray1D<Float> end_epochs,
-//     DeviceArray1D<bool> termination_flags);
+#pragma endregion
+
+#pragma region Advance Step
+
+Vec<Float, STATE_DIM> sum_truncation_error(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states, const CudaIndex &index)
+{
+    // ! Optimization for stage = 0
+    auto accumulator = d_states.vector_at(0, index) * RKF78::embedded_weight(0);
+
+    // ! Starts at 1 because of optimization above
+    for (auto stage = 1; stage < RKF78::NStages; ++stage)
+    {
+        accumulator += d_states.vector_at(stage, index) * RKF78::embedded_weight(stage);
+    }
+
+    return accumulator;
+}
+
+Float clamp_dt(const Float &dt)
+{
+    return min(device_rkf_parameters.max_dt_scale, max(device_rkf_parameters.min_dt_scale, dt));
+}
+
+Vec<Float, STATE_DIM> sum_final_d_states(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states, const CudaIndex &index)
+{
+    // ! Optimization for stage = 0
+    auto state = d_states.vector_at(0, index) * RKF78::weight(0);
+
+    // ! Starts at 1 because of optimization above
+    for (auto stage = 1; stage < RKF78::NStages; ++stage)
+    {
+        state += d_states.vector_at(stage, index) * RKF78::weight(stage);
+    }
+    return state;
+}
+
+__global__ void advance_step(
+    // Input data
+    const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states,
+    const DeviceArray1D<Float> end_epochs,
+    const DeviceArray1D<Float> start_epochs,
+    // Output data
+    DeviceArray2D<Float, STATE_DIM> states,
+    DeviceArray1D<Float> next_dts,
+    DeviceArray1D<Float> last_dts,
+    DeviceArray1D<bool> termination_flags,
+    DeviceArray1D<Float> epochs)
+{
+    const auto index = index_in_grid();
+
+    if (index >= states.n_vecs || termination_flags.at(index))
+    {
+        return;
+    }
+
+    const auto dt = next_dts.at(index);
+    auto criterion = TimeStepCriterion::from_dts(dt, dt * device_rkf_parameters.max_dt_scale);
+
+    auto current_d_state = sum_final_d_states(d_states, index) * dt + states.vector_at(index);
+    Vec<Float, STATE_DIM> next_state = states.vector_at(index) + current_d_state * dt;
+
+    criterion.evaluate_error(
+        dt,
+        current_d_state,
+        states.vector_at(index),
+        next_state,
+        d_states,
+        index);
+
+    // check for end of simulation
+    if (!criterion.terminate && !criterion.reject)
+    {
+        criterion.evaluate_simulation_end(
+            criterion.current_dt,
+            criterion.next_dt,
+            epochs.at(index),
+            start_epochs.at(index),
+            end_epochs.at(index));
+    }
+
+    if (!criterion.terminate && !criterion.refine)
+    {
+        // if next time step would be too small just terminate the sample
+        criterion.terminate = (criterion.reject ? abs(criterion.current_dt) : abs(criterion.next_dt)) < device_rkf_parameters.min_time_step;
+    }
+
+    if (criterion.reject)
+    {
+        // reject the current time step
+        // results are discarded and re-evaluated with shorter dt
+        next_dts.at(index) = criterion.current_dt;
+        termination_flags.at(index) = criterion.terminate;
+        return;
+    }
+
+    // no rejection, no termination
+    // advance
+    epochs.at(index) += dt;
+    states.set_vector_at(index, next_state);
+    last_dts.at(index) = dt;
+    termination_flags.at(index) = criterion.terminate;
+    if (!criterion.terminate)
+    {
+        next_dts.at(index) = criterion.next_dt;
+    }
+}
 
 // __global__ void all_terminated(
 //     const DeviceArray1D<bool> termination_flags,
@@ -119,17 +224,6 @@ __global__ void evaluate_ode(
 #pragma endregion
 
 #pragma region Propagate
-
-std::size_t block_size()
-{
-    const char *env_block = std::getenv("HALLOUMI_BLOCK_SIZE");
-    return env_block ? std::stoi(env_block) : 128;
-}
-
-std::size_t grid_size(std::size_t block_size, std::size_t n_samples)
-{
-    return (n_samples + block_size - 1) / block_size;
-}
 
 __host__ void propagate(Simulation &simulation)
 {
@@ -148,7 +242,7 @@ __host__ void propagate(Simulation &simulation)
     const auto end_epochs = simulation.propagation_context.samples_data.end_epochs.get();
     const auto start_epochs = simulation.propagation_context.samples_data.start_epochs.get();
 
-    auto dt_next = simulation.propagation_context.propagation_state.dt_next.get();
+    auto next_dts = simulation.propagation_context.propagation_state.next_dts.get();
     auto reduction_buffer = host_reduction_buffer.get();
     auto termination_flags = simulation.propagation_context.propagation_state.terminated.get();
     auto simulation_ended_flags = simulation.propagation_context.propagation_state.simulation_ended.get();
@@ -160,7 +254,7 @@ __host__ void propagate(Simulation &simulation)
         termination_flags,
         simulation_ended_flags,
         backwards_flags,
-        dt_next);
+        next_dts);
 
     for (auto step = 0; step < simulation.rkf_parameters.max_steps; ++step)
     {
