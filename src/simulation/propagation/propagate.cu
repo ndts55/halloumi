@@ -4,160 +4,14 @@
 #include "core/types.cuh"
 #include "cuda/vec.cuh"
 #include "simulation/environment/ephemeris.cuh"
-#include "simulation/propagate.cuh"
+#include "simulation/propagation/propagate.cuh"
 #include "simulation/simulation.hpp"
 #include "simulation/tableau.cuh"
 #include "simulation/rkf_parameters.cuh"
-
-#pragma region CUDA Helpers
-
-using CudaIndex = unsigned int;
-
-__device__ CudaIndex index_in_grid()
-{
-    return blockIdx.x * blockDim.x + threadIdx.x;
-}
-__device__ CudaIndex index_in_block()
-{
-    return threadIdx.x;
-}
-
-void check_cuda_error(cudaError_t error, const std::string &message = "CUDA error")
-{
-    if (error != cudaSuccess)
-    {
-        throw std::runtime_error(message + ": " + cudaGetErrorString(error));
-    }
-}
-
-void prefetch_rkf_parameters(const RKFParameters &rkf_parameters)
-{
-    check_cuda_error(initialize_rkf_parameters_on_device(rkf_parameters),
-                     "Failed to copy RKF parameters to device");
-}
-
-void prefetch_ephemeris(const Ephemeris &ephemeris)
-{
-    check_cuda_error(ephemeris.data.prefetch());
-    check_cuda_error(ephemeris.integers.prefetch());
-    check_cuda_error(ephemeris.floats.prefetch());
-}
-
-void prefetch_propagation_context(const PropagationContext &propagation_context)
-{
-    check_cuda_error(propagation_context.propagation_state.states.prefetch());
-    check_cuda_error(propagation_context.propagation_state.epochs.prefetch());
-    check_cuda_error(propagation_context.propagation_state.terminated.prefetch());
-    check_cuda_error(propagation_context.propagation_state.dt_last.prefetch());
-    check_cuda_error(propagation_context.propagation_state.dt_next.prefetch());
-    check_cuda_error(propagation_context.propagation_state.simulation_ended.prefetch());
-    check_cuda_error(propagation_context.propagation_state.backwards.prefetch());
-    check_cuda_error(propagation_context.samples_data.end_epochs.prefetch());
-    check_cuda_error(propagation_context.samples_data.start_epochs.prefetch());
-}
-
-void prefetch_constants(const Constants &constants)
-{
-    check_cuda_error(constants.body_ids.prefetch());
-    check_cuda_error(constants.gms.prefetch());
-}
-
-void prefetch_active_bodies(const ActiveBodies &active_bodies)
-{
-    check_cuda_error(active_bodies.prefetch());
-}
-
-void prepare_device_memory(const Simulation &simulation)
-{
-    std::cout << "Preparing device memory for simulation..." << std::endl;
-
-    prefetch_rkf_parameters(simulation.rkf_parameters);
-    prefetch_ephemeris(simulation.ephemeris);
-    prefetch_propagation_context(simulation.propagation_context);
-    check_cuda_error(RKF78::initialize_device_tableau(), "Error initializing RKF78 tableau");
-    prefetch_constants(simulation.constants);
-    prefetch_active_bodies(simulation.active_bodies);
-
-    check_cuda_error(cudaDeviceSynchronize(), "Error synchronizing after prefetching");
-    std::cout << "Successfully set up device" << std::endl;
-}
-
-#pragma endregion
+#include "simulation/propagation/cuda_utils.cuh"
+#include "simulation/propagation/math_utils.cuh"
 
 #pragma region Math and Physics Helpers
-
-template <std::size_t dim>
-__device__ inline Float squared_norm(const Vec<Float, dim> &vector)
-{
-    Float norm = 0.0;
-    for (const Float &v : vector)
-    {
-        norm += v * v;
-    }
-    return norm;
-}
-
-template <std::size_t dim>
-__device__ inline Float cubed_norm(const Vec<Float, dim> &vector)
-{
-    const auto sn = squared_norm(vector);
-    return sn * sqrtf(sn);
-}
-
-template <std::size_t dim>
-__device__ inline Float reciprocal_cubed_norm(const Vec<Float, dim> &vector)
-{
-    return 1.0 / cubed_norm(vector);
-}
-
-__device__ inline Integer target_body_index(const DeviceEphemeris &eph, const Integer &target)
-{
-    Integer tbc = eph.size();
-    for (Integer i = 0; i < tbc; ++i)
-    {
-        if (eph.target_at(i) == target)
-        {
-            tbc = i;
-            break;
-        }
-    }
-    return tbc;
-}
-
-// TODO profile with and without inline
-__device__ Integer common_center(const DeviceEphemeris &eph, Integer tc, Integer cc)
-{
-    if (tc == 0 || cc == 0)
-    {
-        return 0;
-    }
-
-    Integer tcnew, ccnew;
-
-    while (tc != cc && tc != 0 && cc != 0)
-    {
-        tcnew = eph.center_at(target_body_index(eph, tc));
-        if (tcnew == cc)
-        {
-            return tcnew;
-        }
-        ccnew = eph.center_at(target_body_index(eph, cc));
-        if (ccnew == tc)
-        {
-            return ccnew;
-        }
-        tc = tcnew;
-        cc = ccnew;
-    }
-    if (tc == 0 || cc == 0)
-    {
-        return 0;
-    }
-    else
-    {
-        return tc;
-    }
-}
 
 __device__ Vec<Float, POSITION_DIM> interpolate_type_2_body_to_position(const DeviceEphemeris &eph, const Integer &body_index, const Float &epoch)
 {
@@ -196,7 +50,7 @@ __device__ Vec<Float, POSITION_DIM> read_position(const DeviceEphemeris &eph, co
     Integer t = target;
     while (t != center)
     {
-        auto body_index = target_body_index(eph, t);
+        auto body_index = eph.index_of_target(t);
         // ! We only have type 2 bodies for now.
         position += interpolate_type_2_body_to_position(eph, body_index, epoch);
         t = eph.center_at(body_index);
@@ -206,7 +60,7 @@ __device__ Vec<Float, POSITION_DIM> read_position(const DeviceEphemeris &eph, co
 
 __device__ Vec<Float, POSITION_DIM> calculate_position(const DeviceEphemeris &eph, const Float &epoch, const Integer &target, const Integer &center_of_integration)
 {
-    auto cc = common_center(eph, target, center_of_integration);
+    auto cc = eph.common_center(target, center_of_integration);
     auto xt = read_position(eph, epoch, target, cc);
     auto xc = read_position(eph, epoch, center_of_integration, cc);
     xt -= xc;
@@ -241,21 +95,6 @@ __device__ Vec<Float, STATE_DIM> calculate_current_state(
         state[dim] += states.at(dim, index);
     }
     return state;
-}
-
-__device__ inline Vec<Float, VELOCITY_DIM> two_body(const Vec<Float, POSITION_DIM> &position_delta, const Float &gm)
-{
-    return position_delta * -gm * reciprocal_cubed_norm(position_delta);
-}
-
-__device__ inline Vec<Float, VELOCITY_DIM> three_body_barycentric(const Vec<Float, POSITION_DIM> &source_position, const Vec<Float, POSITION_DIM> &body_position, const Float &gm)
-{
-    return two_body(source_position - body_position, gm);
-}
-
-__device__ Vec<Float, VELOCITY_DIM> three_body_non_barycentric(const Vec<Float, POSITION_DIM> &source_position, const Vec<Float, POSITION_DIM> &body_position, const Float &gm)
-{
-    return three_body_barycentric(source_position, body_position, gm) + two_body(body_position, gm);
 }
 
 __device__ Vec<Float, VELOCITY_DIM> calculate_velocity_delta(
