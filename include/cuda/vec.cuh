@@ -21,6 +21,8 @@ struct Vec
         return N;
     }
 
+#pragma region Array Operations
+
     template <std::size_t Start, std::size_t Size>
     __host__ __device__ inline Vec<T, Size> slice() const
     {
@@ -47,6 +49,35 @@ struct Vec
         }
         return result;
     }
+
+#pragma endregion
+
+#pragma region Norms
+
+    __host__ __device__ inline T squared_norm() const
+    {
+        T norm{0};
+        for (const T &v : data)
+        {
+            norm += v * v;
+        }
+        return norm;
+    }
+
+    __host__ __device__ inline T cubed_norm() const
+    {
+        const auto sn = squared_norm();
+        return sn * sqrtf(sn);
+    }
+
+    __host__ __device__ inline T reciprocal_cubed_norm() const
+    {
+        return 1.0 / cubed_norm();
+    }
+
+#pragma endregion
+
+#pragma region Arithmetic Operators
 
     __host__ __device__ inline Vec<T, N> operator+(const Vec<T, N> &other) const
     {
@@ -133,6 +164,10 @@ struct Vec
         return *this;
     }
 
+#pragma endregion
+
+#pragma region Iterator Functions
+
     __host__ __device__ inline T *begin()
     {
         return data;
@@ -152,4 +187,6 @@ struct Vec
     {
         return data + N;
     }
+
+#pragma endregion
 };
