@@ -8,8 +8,8 @@ struct PropagationState
     CudaArray2D<Float, STATE_DIM> states;
     CudaArray1D<Float> epochs;
     CudaArray1D<bool> terminated;
-    CudaArray1D<Float> dt_last;
-    CudaArray1D<Float> dt_next;
+    CudaArray1D<Float> last_dts;
+    CudaArray1D<Float> next_dts;
     CudaArray1D<bool> simulation_ended;
     CudaArray1D<bool> backwards;
 };

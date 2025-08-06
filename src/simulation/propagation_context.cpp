@@ -15,8 +15,8 @@ PropagationContext::PropagationContext(
     bool states_check = (expected_size == propagation_state.states.n_vecs());
     bool epochs_check = (expected_size == propagation_state.epochs.n_elements());
     bool terminated_check = (expected_size == propagation_state.terminated.n_elements());
-    bool dt_last_check = (expected_size == propagation_state.dt_last.n_elements());
-    bool dt_next_check = (expected_size == propagation_state.dt_next.n_elements());
+    bool dt_last_check = (expected_size == propagation_state.last_dts.n_elements());
+    bool dt_next_check = (expected_size == propagation_state.next_dts.n_elements());
     bool end_epochs_check = (expected_size == samples_data.end_epochs.n_elements());
     bool start_epochs_check = (expected_size == samples_data.start_epochs.n_elements());
 
@@ -31,8 +31,8 @@ PropagationContext::PropagationContext(
         std::cerr << "│ states            │ " << (states_check ? " Yes  " : " No   ") << "│ " << propagation_state.states.n_vecs() << "\n";
         std::cerr << "│ epochs            │ " << (epochs_check ? " Yes  " : " No   ") << "│ " << propagation_state.epochs.n_elements() << "\n";
         std::cerr << "│ terminated        │ " << (terminated_check ? " Yes  " : " No   ") << "│ " << propagation_state.terminated.n_elements() << "\n";
-        std::cerr << "│ dt_last           │ " << (dt_last_check ? " Yes  " : " No   ") << "│ " << propagation_state.dt_last.n_elements() << "\n";
-        std::cerr << "│ dt_next           │ " << (dt_next_check ? " Yes  " : " No   ") << "│ " << propagation_state.dt_next.n_elements() << "\n";
+        std::cerr << "│ last_dts           │ " << (dt_last_check ? " Yes  " : " No   ") << "│ " << propagation_state.last_dts.n_elements() << "\n";
+        std::cerr << "│ next_dts           │ " << (dt_next_check ? " Yes  " : " No   ") << "│ " << propagation_state.next_dts.n_elements() << "\n";
         std::cerr << "│ end_epochs        │ " << (end_epochs_check ? " Yes  " : " No   ") << "│ " << samples_data.end_epochs.n_elements() << "\n";
         std::cerr << "│ start_epochs      │ " << (start_epochs_check ? " Yes  " : " No   ") << "│ " << samples_data.start_epochs.n_elements() << "\n";
         std::cerr << "└───────────────────┴────────┴───────────────┘\n";
@@ -79,8 +79,8 @@ PropagationContext PropagationContext::from_json(const nlohmann::json &configura
             std::move(states),
             std::move(epochs),
             std::move(terminated),
-            /* dt_last */ CudaArray1D<Float>(n_vecs, 0.0f),
-            /* dt_next */ CudaArray1D<Float>(n_vecs, 0.0f),
+            /* last_dts */ CudaArray1D<Float>(n_vecs, 0.0f),
+            /* next_dts */ CudaArray1D<Float>(n_vecs, 0.0f),
             /* simulation_ended */ CudaArray1D<bool>(n_vecs, false),
             /* backwards */ CudaArray1D<bool>(n_vecs, false)},
         SamplesData{
