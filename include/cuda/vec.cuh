@@ -221,7 +221,7 @@ struct Vec
         return *this;
     }
 
-    __host__ __device__ inline Vec<T, N> &operator/(const Vec<T, N> &other) const
+    __host__ __device__ inline Vec<T, N> operator/(const Vec<T, N> &other) const
     {
         Vec<T, N> result;
         for (std::size_t i = 0; i < N; ++i)
