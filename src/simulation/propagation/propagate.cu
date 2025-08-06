@@ -14,10 +14,12 @@
 #pragma region Math and Physics Helpers
 
 __device__ Vec<Float, STATE_DIM> calculate_current_state(
-    const int &stage,
+    // State data
     const DeviceArray2D<Float, STATE_DIM> &states,
     const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states,
+    // Computation coordinates
     const CudaIndex &index,
+    const int &stage,
     const Float &dt)
 {
     Vec<Float, STATE_DIM> state = {0.0};
@@ -44,12 +46,14 @@ __device__ Vec<Float, STATE_DIM> calculate_current_state(
 }
 
 __device__ Vec<Float, STATE_DIM> calculate_state_delta(
-    const DeviceConstants &constants,
-    const DeviceEphemeris &ephemeris,
-    DeviceArray1D<Integer> &active_bodies,
+    // Primary inputes
+    const Vec<Float, STATE_DIM> &state,
+    const Float &t,
+    // Physics configs
     const Integer &center_of_integration,
-    const Integer &t,
-    const Vec<Float, STATE_DIM> &state)
+    const DeviceArray1D<Integer> &active_bodies,
+    const DeviceConstants &constants,
+    const DeviceEphemeris &ephemeris)
 {
     const auto state_position = state.slice<POSITION_OFFSET, POSITION_DIM>();
 
@@ -57,24 +61,26 @@ __device__ Vec<Float, STATE_DIM> calculate_state_delta(
     Vec<Float, VELOCITY_DIM> velocity_delta{0.0};
     if (center_of_integration == 0)
     {
-        for (const auto target : active_bodies)
+        for (auto i = 0; i < active_bodies.n_vecs; ++i)
         {
-            auto body_position = ephemeris.calculate_position(t, target, center_of_integration);
+            const auto target = active_bodies.at(i);
+            const auto body_position = ephemeris.calculate_position(t, target, center_of_integration);
             velocity_delta += three_body_barycentric(state_position, body_position, constants.gm_for(target));
         }
     }
     else
     {
-        for (const auto target : active_bodies)
+        for (auto i = 0; i < active_bodies.n_vecs; ++i)
         {
+            const auto target = active_bodies.at(i);
             if (target != center_of_integration)
             {
-                auto body_position = ephemeris.calculate_position(t, target, center_of_integration);
+                const auto body_position = ephemeris.calculate_position(t, target, center_of_integration);
                 velocity_delta += three_body_non_barycentric(state_position, body_position, constants.gm_for(target));
             }
             else
             {
-                auto gm = constants.gm_for(target);
+                const auto gm = constants.gm_for(target);
                 velocity_delta += two_body(state_position, gm);
             }
         }
@@ -88,22 +94,25 @@ __device__ Vec<Float, STATE_DIM> calculate_state_delta(
 #pragma region Kernels
 
 __global__ void prepare_simulation_run(
-    DeviceArray1D<bool> terminated,
+    // Input
+    const DeviceArray1D<Float> end_epochs,
+    const DeviceArray1D<Float> start_epochs,
+
+    // Output
+    DeviceArray1D<bool> termination_flags,
     DeviceArray1D<bool> simulation_ended,
     DeviceArray1D<bool> backwards,
-    DeviceArray1D<Float> dt_next,
-    const DeviceArray1D<Float> end_epochs,
-    const DeviceArray1D<Float> start_epochs)
+    DeviceArray1D<Float> dt_next)
 {
     const auto i = index_in_grid();
-    if (i >= terminated.n_vecs)
+    if (i >= termination_flags.n_vecs)
     {
         return;
     }
 
     if (simulation_ended.at(i))
     {
-        terminated.at(i) = false;
+        termination_flags.at(i) = false;
         simulation_ended.at(i) = false;
     }
 
@@ -113,13 +122,20 @@ __global__ void prepare_simulation_run(
 }
 
 __global__ void evaluate_ode(
-    DeviceArray1D<Float> epochs,
-    DeviceArray2D<Float, STATE_DIM> states,
-    DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states,
+    // Input data
+    const DeviceArray2D<Float, STATE_DIM> states,
+    const DeviceArray1D<Float> epochs,
     const DeviceArray1D<Float> next_dts,
+
+    // Output data
+    DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states,
+
+    // Control flags
     const DeviceArray1D<bool> termination_flags,
+
+    // Physics configs
     const Integer center_of_integration,
-    DeviceArray1D<Integer> active_bodies,
+    const DeviceArray1D<Integer> active_bodies,
     const DeviceConstants constants,
     const DeviceEphemeris ephemeris)
 {
@@ -140,12 +156,12 @@ __global__ void evaluate_ode(
             current_state[dim] = states.at(dim, index);
         }
         auto state_delta = calculate_state_delta(
-            constants,
-            ephemeris,
-            active_bodies,
-            center_of_integration,
+            current_state,
             epoch,
-            current_state);
+            center_of_integration,
+            active_bodies,
+            constants,
+            ephemeris);
         for (auto dim = 0; dim < STATE_DIM; ++dim)
         {
             d_states.at(dim, 0, index) = state_delta[dim];
@@ -155,14 +171,14 @@ __global__ void evaluate_ode(
     // ! Starts at 1 due to optimization above
     for (auto stage = 1; stage < RKF78::NStages; ++stage)
     {
-        const auto current_state = calculate_current_state(stage, states, d_states, index, dt);
+        const auto current_state = calculate_current_state(states, d_states, index, stage, dt);
         auto state_delta = calculate_state_delta(
-            constants,
-            ephemeris,
-            active_bodies,
-            center_of_integration,
+            current_state,
             /* t */ epoch + RKF78::node(stage) * dt,
-            current_state);
+            center_of_integration,
+            active_bodies,
+            constants,
+            ephemeris);
         for (auto dim = 0; dim < STATE_DIM; ++dim)
         {
             d_states.at(dim, stage, index) = state_delta[dim];
@@ -205,20 +221,29 @@ __host__ void propagate(Simulation &simulation)
     auto n = simulation.n_samples();
     auto bs = block_size();
     auto gs = grid_size(bs, n);
-    // prepare for continuation
-    prepare_simulation_run<<<gs, bs>>>(
-        simulation.propagation_context.propagation_state.terminated.get(),
-        simulation.propagation_context.propagation_state.simulation_ended.get(),
-        simulation.propagation_context.propagation_state.backwards.get(),
-        simulation.propagation_context.propagation_state.dt_next.get(),
-        simulation.propagation_context.samples_data.end_epochs.get(),
-        simulation.propagation_context.samples_data.start_epochs.get());
 
     // set up bool reduction buffer for termination flag kernel
-    CudaArray1D<bool> reduction_buffer(n, false);
-    check_cuda_error(reduction_buffer.prefetch());
+    CudaArray1D<bool> host_reduction_buffer(n, false);
+    check_cuda_error(host_reduction_buffer.prefetch());
 
-    const auto coi = simulation.propagation_context.samples_data.center_of_integration;
+    // 'get' device arrays
+    const auto backwards_flags = simulation.propagation_context.propagation_state.backwards.get();
+    const auto end_epochs = simulation.propagation_context.samples_data.end_epochs.get();
+    const auto start_epochs = simulation.propagation_context.samples_data.start_epochs.get();
+
+    auto dt_next = simulation.propagation_context.propagation_state.dt_next.get();
+    auto reduction_buffer = host_reduction_buffer.get();
+    auto termination_flags = simulation.propagation_context.propagation_state.terminated.get();
+    auto simulation_ended_flags = simulation.propagation_context.propagation_state.simulation_ended.get();
+
+    // prepare for continuation
+    prepare_simulation_run<<<gs, bs>>>(
+        end_epochs,
+        start_epochs,
+        termination_flags,
+        simulation_ended_flags,
+        backwards_flags,
+        dt_next);
 
     for (auto step = 0; step < simulation.rkf_parameters.max_steps; ++step)
     {
