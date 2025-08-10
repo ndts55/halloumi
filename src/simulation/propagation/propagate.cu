@@ -13,8 +13,6 @@
 #include "simulation/propagation/math_utils.cuh"
 #include "simulation/propagation/time_step_criterion.cuh"
 
-#pragma region Prepare Simulation Run
-
 __global__ void prepare_simulation_run(
     // Input
     const DeviceArray1D<Float> end_epochs,
@@ -42,10 +40,6 @@ __global__ void prepare_simulation_run(
     next_dts.at(i) = copysign(device_rkf_parameters.initial_time_step, span);
     backwards.at(i) = span < 0;
 }
-
-#pragma endregion
-
-#pragma region Evaluate ODE
 
 __global__ void evaluate_ode(
     // Input data
@@ -108,10 +102,6 @@ __global__ void evaluate_ode(
         }
     }
 }
-
-#pragma endregion
-
-#pragma region Advance Step
 
 __global__ void advance_step(
     // Input data
@@ -184,26 +174,81 @@ __global__ void advance_step(
     }
 }
 
-// __global__ void all_terminated(
-//     const DeviceArray1D<bool> termination_flags,
-//     DeviceArray1D<bool> result_buffer,
-//     bool initial_value);
+/* We assume that the length of termination_flags is less than or equal to the number of threads in the grid.
+ */
+__global__ void reduce_bool_with_and(const DeviceArray1D<bool> termination_flags, DeviceArray1D<bool> result_buffer)
+{
+    extern __shared__ bool block_buffer[];
 
-#pragma endregion
+    const auto local_index = index_in_block();
+    const auto global_index = index_in_grid();
+    if (global_index <= termination_flags.n_vecs)
+    {
+        block_buffer[local_index] = termination_flags.at(global_index);
+    }
+    else
+    {
+        // Neutral element for (bool, &&) is true
+        block_buffer[local_index] = true;
+    }
+    __syncthreads();
 
-#pragma region Propagate
+    for (auto lim = blockDim.x / 2; lim >= 1; lim /= 2)
+    {
+        if (local_index < lim)
+        {
+            block_buffer[local_index] = block_buffer[local_index] && block_buffer[local_index + lim];
+        }
+        __syncthreads();
+    }
+
+    if (local_index == 0)
+    {
+        result_buffer.at(blockIdx.x) = block_buffer[0];
+    }
+}
+
+__host__ bool all_terminated(
+    const DeviceArray1D<bool> &termination_flags,
+    DeviceArray1D<bool> &reduction_buffer,
+    std::size_t first_grid_size,
+    std::size_t block_size)
+{
+    size_t shared_mem_size = block_size * sizeof(bool);
+
+    reduce_bool_with_and<<<first_grid_size, block_size, shared_mem_size>>>(termination_flags, reduction_buffer);
+    check_cuda_error(cudaDeviceSynchronize(), "first reduction pass on GPU");
+
+    if (first_grid_size > 1)
+    {
+        auto second_grid_size = grid_size(block_size, first_grid_size);
+        reduce_bool_with_and<<<second_grid_size, block_size, shared_mem_size>>>(reduction_buffer, reduction_buffer);
+        check_cuda_error(cudaDeviceSynchronize(), "second reduction pass on GPU");
+    }
+
+    bool result;
+    check_cuda_error(
+        cudaMemcpy(&result, reduction_buffer.data, sizeof(bool), cudaMemcpyDeviceToHost),
+        "Error copying reduction result from device to host");
+
+    return result;
+}
 
 __host__ void propagate(Simulation &simulation)
 {
     prepare_device_memory(simulation);
     // figure out grid size and block size
     auto n = simulation.n_samples();
-    auto bs = block_size();
+    auto bs = block_size_from_env();
     auto gs = grid_size(bs, n);
 
+    std::cout << "Grid size: " << gs << ", Block size: " << bs << std::endl;
+
     // set up bool reduction buffer for termination flag kernel
-    CudaArray1D<bool> host_reduction_buffer(n, false);
+    CudaArray1D<bool> host_reduction_buffer(gs, false); // One entry per block
     check_cuda_error(host_reduction_buffer.prefetch());
+    CudaArray3D<Float, STATE_DIM, RKF78::NStages> host_d_states(n);
+    check_cuda_error(host_d_states.prefetch());
 
     // 'get' device arrays
     const auto backwards_flags = simulation.propagation_context.propagation_state.backwards.get();
@@ -211,11 +256,19 @@ __host__ void propagate(Simulation &simulation)
     const auto start_epochs = simulation.propagation_context.samples_data.start_epochs.get();
 
     auto next_dts = simulation.propagation_context.propagation_state.next_dts.get();
+    auto last_dts = simulation.propagation_context.propagation_state.last_dts.get();
     auto reduction_buffer = host_reduction_buffer.get();
     auto termination_flags = simulation.propagation_context.propagation_state.terminated.get();
     auto simulation_ended_flags = simulation.propagation_context.propagation_state.simulation_ended.get();
 
-    // prepare for continuation
+    auto states = simulation.propagation_context.propagation_state.states.get();
+    auto epochs = simulation.propagation_context.propagation_state.epochs.get();
+    auto d_states = host_d_states.get();
+    auto center_of_integration = simulation.propagation_context.samples_data.center_of_integration;
+    auto active_bodies = simulation.active_bodies.get();
+    auto constants = simulation.constants.get();
+    auto ephemeris = simulation.ephemeris.get();
+
     prepare_simulation_run<<<gs, bs>>>(
         end_epochs,
         start_epochs,
@@ -226,12 +279,30 @@ __host__ void propagate(Simulation &simulation)
 
     for (auto step = 0; step < simulation.rkf_parameters.max_steps; ++step)
     {
-        // TODO compute dstates of each sample
-        // TODO advance steps using dstates, set termination flag for each sample
-        // TODO check for termination condition on all samples
+        evaluate_ode<<<gs, bs>>>(
+            states,
+            epochs,
+            next_dts,
+            d_states,
+            termination_flags,
+            center_of_integration,
+            active_bodies,
+            constants,
+            ephemeris);
+        advance_step<<<gs, bs>>>(
+            d_states,
+            end_epochs,
+            start_epochs,
+            states,
+            next_dts,
+            last_dts,
+            termination_flags,
+            epochs);
+        if (all_terminated(termination_flags, reduction_buffer, gs, bs))
+        {
+            break;
+        }
     }
 
     // TODO retrieve final results and return them
 }
-
-#pragma endregion
