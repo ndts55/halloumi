@@ -19,10 +19,16 @@ __device__ inline CudaIndex index_in_block()
     return threadIdx.x;
 }
 
-std::size_t block_size()
+std::size_t block_size_from_env()
 {
-    const char *env_block = std::getenv("HALLOUMI_BLOCK_SIZE");
-    return env_block ? std::stoi(env_block) : 128;
+    static std::size_t cached_block_size = 0;
+    if (cached_block_size == 0)
+    {
+        const char *env_block = std::getenv("HALLOUMI_BLOCK_SIZE");
+        cached_block_size = env_block ? std::stoi(env_block) : 128;
+    }
+
+    return cached_block_size;
 }
 
 std::size_t grid_size(std::size_t block_size, std::size_t n_samples)
