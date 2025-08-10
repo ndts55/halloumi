@@ -1,7 +1,6 @@
 #pragma once
 #include <nlohmann/json.hpp>
 #include "core/types.cuh"
-#include "simulation/propagation_context.hpp"
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/environment/constants.cuh"
 #include "simulation/rkf_parameters.cuh"
@@ -10,22 +9,48 @@
 
 using ActiveBodies = CudaArray1D<Integer>;
 
+struct PropagationState
+{
+    CudaArray2D<Float, STATE_DIM> states;
+    CudaArray1D<Float> epochs;
+    CudaArray1D<bool> terminated;
+    CudaArray1D<Float> last_dts;
+    CudaArray1D<Float> next_dts;
+    CudaArray1D<bool> simulation_ended;
+    CudaArray1D<bool> backwards;
+};
+
+struct SamplesData
+{
+    std::size_t n_vecs;
+    Integer center_of_integration;
+    Float duration_in_days;
+    CudaArray1D<Float> end_epochs;
+    CudaArray1D<Float> start_epochs;
+    CudaArray2D<Float, STATE_DIM> start_states;
+};
+
 struct Simulation
 {
-    PropagationContext propagation_context;
-    Ephemeris ephemeris;
+    PropagationState propagation_state;
+    const SamplesData samples_data;
+    const Ephemeris ephemeris;
     const RKFParameters rkf_parameters;
     const Constants constants{};
     const ActiveBodies active_bodies{celestial_constants::BODY_IDS};
 
     Simulation(
-        PropagationContext &&pc,
+        PropagationState &&ps,
+        SamplesData &&sd,
         Ephemeris &&e,
-        RKFParameters &&rp) : propagation_context(std::move(pc)),
+        RKFParameters &&rp) : propagation_state(std::move(ps)),
+                              samples_data(std::move(sd)),
                               ephemeris(std::move(e)),
-                              rkf_parameters(std::move(rp)) {}
+                              rkf_parameters(std::move(rp))
+    {
+    }
 
     static Simulation from_json(const nlohmann::json &json);
 
-    inline std::size_t n_samples() const { return propagation_context.samples_data.n_vecs; }
+    inline std::size_t n_samples() const { return propagation_state.states.n_vecs(); }
 };

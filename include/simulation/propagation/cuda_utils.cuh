@@ -57,17 +57,20 @@ void prefetch_ephemeris(const Ephemeris &ephemeris)
     check_cuda_error(ephemeris.floats.prefetch());
 }
 
-void prefetch_propagation_context(const PropagationContext &propagation_context)
+void prefetch_propagation_state(const PropagationState &propagation_state)
 {
-    check_cuda_error(propagation_context.propagation_state.states.prefetch());
-    check_cuda_error(propagation_context.propagation_state.epochs.prefetch());
-    check_cuda_error(propagation_context.propagation_state.terminated.prefetch());
-    check_cuda_error(propagation_context.propagation_state.last_dts.prefetch());
-    check_cuda_error(propagation_context.propagation_state.next_dts.prefetch());
-    check_cuda_error(propagation_context.propagation_state.simulation_ended.prefetch());
-    check_cuda_error(propagation_context.propagation_state.backwards.prefetch());
-    check_cuda_error(propagation_context.samples_data.end_epochs.prefetch());
-    check_cuda_error(propagation_context.samples_data.start_epochs.prefetch());
+    check_cuda_error(propagation_state.states.prefetch());
+    check_cuda_error(propagation_state.epochs.prefetch());
+    check_cuda_error(propagation_state.terminated.prefetch());
+    check_cuda_error(propagation_state.last_dts.prefetch());
+    check_cuda_error(propagation_state.next_dts.prefetch());
+    check_cuda_error(propagation_state.simulation_ended.prefetch());
+    check_cuda_error(propagation_state.backwards.prefetch());
+}
+void prefetch_samples_data(const SamplesData &samples_data)
+{
+    check_cuda_error(samples_data.end_epochs.prefetch());
+    check_cuda_error(samples_data.start_epochs.prefetch());
 }
 
 void prefetch_constants(const Constants &constants)
@@ -87,7 +90,8 @@ void prepare_device_memory(const Simulation &simulation)
 
     prefetch_rkf_parameters(simulation.rkf_parameters);
     prefetch_ephemeris(simulation.ephemeris);
-    prefetch_propagation_context(simulation.propagation_context);
+    prefetch_propagation_state(simulation.propagation_state);
+    prefetch_samples_data(simulation.samples_data);
     check_cuda_error(RKF78::initialize_device_tableau(), "Error initializing RKF78 tableau");
     prefetch_constants(simulation.constants);
     prefetch_active_bodies(simulation.active_bodies);
