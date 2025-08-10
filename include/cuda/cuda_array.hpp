@@ -33,12 +33,6 @@ void fill_cuda_array(std::size_t n_elements, CudaPtr<T[]> &data_, T fill_value)
     std::fill(data_.get(), data_.get() + n_elements, fill_value);
 }
 
-template <typename T>
-cudaError_t prefetch_async(const std::size_t n_elements, const CudaPtr<T[]> &data_)
-{
-    return cudaMemPrefetchAsync(data_.get(), n_elements * sizeof(T), 0, 0);
-}
-
 #pragma endregion
 
 enum class CudaArrayPrefetch
@@ -114,9 +108,15 @@ public:
     {
         return DeviceArray1D<T>(data_.get(), n_elements_);
     }
-    cudaError_t prefetch() const
+
+    cudaError_t prefetch_to_device() const
     {
-        return prefetch_async(n_elements_, data_);
+        return cudaMemPrefetchAsync(data_.get(), n_elements_ * sizeof(T), 0, 0);
+    }
+
+    cudaError_t prefetch_to_host() const
+    {
+        return cudaMemPrefetchAsync(data_.get(), n_elements_ * sizeof(T), cudaCpuDeviceId, 0);
     }
 
     CudaPtr<T[]> &data() { return data_; }
@@ -198,9 +198,15 @@ public:
     {
         return DeviceArray2D<T, VEC_SIZE>{data_.get(), n_vecs_};
     }
-    cudaError_t prefetch() const
+
+    cudaError_t prefetch_to_device() const
     {
-        return prefetch_async(size(), data_);
+        return cudaMemPrefetchAsync(data_.get(), size() * sizeof(T), 0, 0);
+    }
+
+    cudaError_t prefetch_to_host() const
+    {
+        return cudaMemPrefetchAsync(data_.get(), size() * sizeof(T), cudaCpuDeviceId, 0);
     }
 
     CudaPtr<T[]> &data() { return data_; }
@@ -267,9 +273,15 @@ public:
     {
         return DeviceArray3D<T, VEC_SIZE, N_STAGES>{data_.get(), n_vecs_};
     }
-    cudaError_t prefetch() const
+
+    cudaError_t prefetch_to_device() const
     {
-        return prefetch_async(size(), data_);
+        return cudaMemPrefetchAsync(data_.get(), size() * sizeof(T), 0, 0);
+    }
+
+    cudaError_t prefetch_to_host() const
+    {
+        return cudaMemPrefetchAsync(data_.get(), size() * sizeof(T), cudaCpuDeviceId, 0);
     }
 
     CudaPtr<T[]> &data() { return data_; }

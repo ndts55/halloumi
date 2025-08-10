@@ -246,9 +246,9 @@ __host__ void propagate(Simulation &simulation)
 
     // set up bool reduction buffer for termination flag kernel
     CudaArray1D<bool> host_reduction_buffer(gs, false); // One entry per block
-    check_cuda_error(host_reduction_buffer.prefetch());
+    check_cuda_error(host_reduction_buffer.prefetch_to_device());
     CudaArray3D<Float, STATE_DIM, RKF78::NStages> host_d_states(n);
-    check_cuda_error(host_d_states.prefetch());
+    check_cuda_error(host_d_states.prefetch_to_device());
 
     // 'get' device arrays
     const auto backwards_flags = simulation.propagation_state.backwards.get();
@@ -321,6 +321,5 @@ __host__ void propagate(Simulation &simulation)
         std::cout << "Terminated because all samples terminated" << std::endl;
     }
 
-    // TODO retrieve final results and return them
-    // TODO find out what is actually being compared in the acceptance tests
+    sync_to_host(simulation);
 }
