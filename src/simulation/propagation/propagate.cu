@@ -251,20 +251,20 @@ __host__ void propagate(Simulation &simulation)
     check_cuda_error(host_d_states.prefetch());
 
     // 'get' device arrays
-    const auto backwards_flags = simulation.propagation_context.propagation_state.backwards.get();
-    const auto end_epochs = simulation.propagation_context.samples_data.end_epochs.get();
-    const auto start_epochs = simulation.propagation_context.samples_data.start_epochs.get();
+    const auto backwards_flags = simulation.propagation_state.backwards.get();
+    const auto end_epochs = simulation.samples_data.end_epochs.get();
+    const auto start_epochs = simulation.samples_data.start_epochs.get();
 
-    auto next_dts = simulation.propagation_context.propagation_state.next_dts.get();
-    auto last_dts = simulation.propagation_context.propagation_state.last_dts.get();
+    auto next_dts = simulation.propagation_state.next_dts.get();
+    auto last_dts = simulation.propagation_state.last_dts.get();
     auto reduction_buffer = host_reduction_buffer.get();
-    auto termination_flags = simulation.propagation_context.propagation_state.terminated.get();
-    auto simulation_ended_flags = simulation.propagation_context.propagation_state.simulation_ended.get();
+    auto termination_flags = simulation.propagation_state.terminated.get();
+    auto simulation_ended_flags = simulation.propagation_state.simulation_ended.get();
 
-    auto states = simulation.propagation_context.propagation_state.states.get();
-    auto epochs = simulation.propagation_context.propagation_state.epochs.get();
+    auto states = simulation.propagation_state.states.get();
+    auto epochs = simulation.propagation_state.epochs.get();
     auto d_states = host_d_states.get();
-    auto center_of_integration = simulation.propagation_context.samples_data.center_of_integration;
+    auto center_of_integration = simulation.samples_data.center_of_integration;
     auto active_bodies = simulation.active_bodies.get();
     auto constants = simulation.constants.get();
     auto ephemeris = simulation.ephemeris.get();
@@ -276,7 +276,9 @@ __host__ void propagate(Simulation &simulation)
         simulation_ended_flags,
         backwards_flags,
         next_dts);
+    check_cuda_error(cudaGetLastError(), "prepare simulation run kernel launch failed");
 
+    bool reached_max_steps = true;
     for (auto step = 0; step < simulation.rkf_parameters.max_steps; ++step)
     {
         evaluate_ode<<<gs, bs>>>(
@@ -289,6 +291,8 @@ __host__ void propagate(Simulation &simulation)
             active_bodies,
             constants,
             ephemeris);
+        check_cuda_error(cudaGetLastError(), "evaluate ode kernel launch failed");
+
         advance_step<<<gs, bs>>>(
             d_states,
             end_epochs,
@@ -298,11 +302,25 @@ __host__ void propagate(Simulation &simulation)
             last_dts,
             termination_flags,
             epochs);
+        check_cuda_error(cudaGetLastError(), "advance step kernel launch failed");
+
         if (all_terminated(termination_flags, reduction_buffer, gs, bs))
         {
+            std::cout << "All simulations terminated at step " << step << std::endl;
+            reached_max_steps = false;
             break;
         }
     }
 
+    if (reached_max_steps)
+    {
+        std::cout << "Terminated because the simulation reached max step count" << std::endl;
+    }
+    else
+    {
+        std::cout << "Terminated because all samples terminated" << std::endl;
+    }
+
     // TODO retrieve final results and return them
+    // TODO find out what is actually being compared in the acceptance tests
 }
