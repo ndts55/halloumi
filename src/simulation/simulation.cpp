@@ -15,7 +15,6 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
 
     // Mutable State
     CudaArray2D<Float, STATE_DIM> states(n_vecs);
-    CudaArray2D<Float, STATE_DIM> start_states(n_vecs);
     CudaArray1D<Float> epochs(n_vecs);
     CudaArray1D<bool> terminated(n_vecs, false);
 
@@ -24,19 +23,25 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
     CudaArray1D<Float> start_epochs(n_vecs);
     CudaArray1D<Float> end_epochs(n_vecs);
 
+    // Immutable expected state
+    std::vector<Vec<Float, STATE_DIM>> expected_states;
+    expected_states.reserve(n_vecs);
+    std::vector<Float> expected_epochs;
+    expected_epochs.reserve(n_vecs);
+
     std::size_t idx = 0;
     for (auto sample : in_samples)
     {
         Float e = sample["epoch"];
         epochs.at(idx) = e;
         start_epochs.at(idx) = e;
-        end_epochs.at(idx) = e + duration_in_days; // ? is this even correct?
+        // FIXME what is the correct way to add duration_in_days to epoch?
+        end_epochs.at(idx) = e + duration_in_days;
         auto cart = sample["stateCart"];
         for (auto dim = 0; dim < STATE_DIM; dim++)
         {
             // put each element of vec<6> in the correct position
             states.at(dim, idx) = cart[dim];
-            start_states.at(dim, idx) = cart[dim];
         }
         idx += 1;
     }
@@ -55,7 +60,6 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
         duration_in_days,
         std::move(end_epochs),
         std::move(start_epochs),
-        std::move(start_states),
     };
 
     auto exec_config = json_from_file(configuration["simConfig"]["config"]);
@@ -63,6 +67,42 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
     return Simulation(
         std::move(ps),
         std::move(sd),
+        ExpectedPropagationState::from_json(samples_json),
+        Tolerances::from_json(configuration),
         Ephemeris::from_brie(environment_json["ephemeris"]),
         RKFParameters::from_json(exec_config["integration"]));
+}
+
+ExpectedPropagationState ExpectedPropagationState::from_json(const nlohmann::json &json)
+{
+    const auto out_samples = json["outSamples"];
+    const auto n_vecs = out_samples.size();
+    std::vector<Float> states(n_vecs * STATE_DIM, 0.0);
+    std::vector<Float> epochs;
+    epochs.reserve(n_vecs);
+    auto index = 0;
+    for (const auto &sample : out_samples)
+    {
+        epochs.push_back(sample["epoch"]);
+        const auto state = sample["stateCart"];
+        for (auto dim = 0; dim < STATE_DIM; ++dim)
+        {
+            states.at(get_2d_index(n_vecs, dim, index)) = state[dim];
+        }
+        index += 1;
+    }
+    return ExpectedPropagationState{
+        std::move(states),
+        std::move(epochs),
+    };
+}
+
+Tolerances Tolerances::from_json(const nlohmann::json &configuration)
+{
+    Tolerances t;
+    const auto abstol_json = configuration["validation"]["absTol"];
+    t.position = abstol_json["pos"];
+    t.velocity = abstol_json["vel"];
+    t.time = abstol_json["time"];
+    return t;
 }

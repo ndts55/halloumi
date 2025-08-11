@@ -35,6 +35,8 @@ void fill_cuda_array(std::size_t n_elements, CudaPtr<T[]> &data_, T fill_value)
 
 #pragma endregion
 
+// TODO rename CudaArray to GlobalArray
+
 enum class CudaArrayPrefetch
 {
     NoPrefetch,
@@ -119,7 +121,7 @@ public:
         return cudaMemPrefetchAsync(data_.get(), n_elements_ * sizeof(T), cudaCpuDeviceId, 0);
     }
 
-    CudaPtr<T[]> &data() { return data_; }
+    const CudaPtr<T[]> &data() const { return data_; }
 
     // Iterator support
     using iterator = T *;
@@ -209,7 +211,7 @@ public:
         return cudaMemPrefetchAsync(data_.get(), size() * sizeof(T), cudaCpuDeviceId, 0);
     }
 
-    CudaPtr<T[]> &data() { return data_; }
+    const CudaPtr<T[]> &data() const { return data_; }
 
     // Iterator support
     using iterator = T *;
@@ -284,7 +286,7 @@ public:
         return cudaMemPrefetchAsync(data_.get(), size() * sizeof(T), cudaCpuDeviceId, 0);
     }
 
-    CudaPtr<T[]> &data() { return data_; }
+    const CudaPtr<T[]> &data() const { return data_; }
 
     // Iterator support
     using iterator = T *;

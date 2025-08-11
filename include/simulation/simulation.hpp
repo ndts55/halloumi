@@ -27,24 +27,51 @@ struct SamplesData
     Float duration_in_days;
     CudaArray1D<Float> end_epochs;
     CudaArray1D<Float> start_epochs;
-    CudaArray2D<Float, STATE_DIM> start_states;
+};
+
+struct ExpectedPropagationState
+{
+    std::vector<Float> states_data;
+    std::vector<Float> epochs;
+
+    static ExpectedPropagationState from_json(const nlohmann::json &json);
+};
+
+struct Tolerances
+{
+    Float position;
+    Float velocity;
+    Float time;
+
+    static Tolerances from_json(const nlohmann::json &json);
 };
 
 struct Simulation
 {
     PropagationState propagation_state;
+
     const SamplesData samples_data;
     const Ephemeris ephemeris;
     const RKFParameters rkf_parameters;
+
     const Constants constants{};
     const ActiveBodies active_bodies{celestial_constants::BODY_IDS};
+
+    const ExpectedPropagationState expected_propagation_state;
+    const Tolerances tolerances;
+
+    bool propagated = false;
 
     Simulation(
         PropagationState &&ps,
         SamplesData &&sd,
+        ExpectedPropagationState &&eps,
+        Tolerances &&t,
         Ephemeris &&e,
         RKFParameters &&rp) : propagation_state(std::move(ps)),
                               samples_data(std::move(sd)),
+                              expected_propagation_state(std::move(eps)),
+                              tolerances(std::move(t)),
                               ephemeris(std::move(e)),
                               rkf_parameters(std::move(rp))
     {

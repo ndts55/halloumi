@@ -322,4 +322,6 @@ __host__ void propagate(Simulation &simulation)
     }
 
     sync_to_host(simulation);
+
+    simulation.propagated = true;
 }
