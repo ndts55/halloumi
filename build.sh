@@ -9,4 +9,4 @@ function build() {
     # cmake --install $install_dir
 }
 
-build
+build "$@"
