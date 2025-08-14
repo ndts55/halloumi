@@ -54,7 +54,7 @@ __device__ Vec<Float, STATE_DIM> calculate_current_state(
     return state;
 }
 
-__device__ Vec<Float, STATE_DIM> calculate_state_delta(
+__device__ Vec<Float, STATE_DIM> calculate_state_derivative(
     // Primary inputes
     const Vec<Float, STATE_DIM> &state,
     const Float &t,
@@ -114,7 +114,7 @@ __device__ Float clamp_dt(const Float &dt)
     return min(device_rkf_parameters.max_dt_scale, max(device_rkf_parameters.min_dt_scale, dt));
 }
 
-__device__ Vec<Float, STATE_DIM> calculate_final_d_state(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states, const CudaIndex &index)
+__device__ Vec<Float, STATE_DIM> calculate_final_state_derivative(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states, const CudaIndex &index)
 {
     Vec<Float, STATE_DIM> sum{0.0};
 

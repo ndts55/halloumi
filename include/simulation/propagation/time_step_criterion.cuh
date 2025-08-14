@@ -24,14 +24,14 @@ struct TimeStepCriterion
 
     __device__ void evaluate_error(
         const Float &current_dt,
-        const Vec<Float, STATE_DIM> &current_d_state,
+        const Vec<Float, STATE_DIM> &current_state_derivative,
         const Vec<Float, STATE_DIM> &current_state,
         const Vec<Float, STATE_DIM> &next_state,
         const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states,
         const CudaIndex &index)
     {
         const auto dt_value = fabs(current_dt);
-        const auto desired_error_magnitude = Vec<Float, STATE_DIM>{device_rkf_parameters.abs_tol} + (next_state.componentwise_abs().componentwise_max(current_state.componentwise_abs()) * device_rkf_parameters.scale_state + current_d_state.componentwise_abs() * device_rkf_parameters.scale_dstate * dt_value) * device_rkf_parameters.rel_tol;
+        const auto desired_error_magnitude = Vec<Float, STATE_DIM>{device_rkf_parameters.abs_tol} + (next_state.componentwise_abs().componentwise_max(current_state.componentwise_abs()) * device_rkf_parameters.scale_state + current_state_derivative.componentwise_abs() * device_rkf_parameters.scale_dstate * dt_value) * device_rkf_parameters.rel_tol;
         const auto error = calculate_truncation_error(d_states, index) * dt_value;
         const auto error_ratio = (error / desired_error_magnitude).max_norm();
 

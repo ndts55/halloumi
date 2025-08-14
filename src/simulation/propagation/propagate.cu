@@ -72,34 +72,28 @@ __global__ void evaluate_ode(
         {
             current_state[dim] = states.at(dim, index);
         }
-        auto state_delta = calculate_state_delta(
+        auto state_derivative = calculate_state_derivative(
             current_state,
             epoch,
             center_of_integration,
             active_bodies,
             constants,
             ephemeris);
-        for (auto dim = 0; dim < STATE_DIM; ++dim)
-        {
-            d_states.at(dim, 0, index) = state_delta[dim];
-        }
+        d_states.set_vector_at(0, index, state_derivative);
     }
 
     // ! Starts at 1 due to optimization above
     for (auto stage = 1; stage < RKF78::NStages; ++stage)
     {
         const auto current_state = calculate_current_state(states, d_states, index, stage, dt);
-        auto state_delta = calculate_state_delta(
+        auto state_derivative = calculate_state_derivative(
             current_state,
             /* t */ epoch + RKF78::node(stage) * dt,
             center_of_integration,
             active_bodies,
             constants,
             ephemeris);
-        for (auto dim = 0; dim < STATE_DIM; ++dim)
-        {
-            d_states.at(dim, stage, index) = state_delta[dim];
-        }
+        d_states.set_vector_at(stage, index, state_derivative);
     }
 }
 
@@ -125,12 +119,12 @@ __global__ void advance_step(
     const auto dt = next_dts.at(index);
     auto criterion = TimeStepCriterion::from_dts(dt, dt * device_rkf_parameters.max_dt_scale);
 
-    auto current_d_state = calculate_final_d_state(d_states, index) * dt + states.vector_at(index);
-    Vec<Float, STATE_DIM> next_state = states.vector_at(index) + current_d_state * dt;
+    auto current_state_derivative = calculate_final_state_derivative(d_states, index) * dt + states.vector_at(index);
+    Vec<Float, STATE_DIM> next_state = states.vector_at(index) + current_state_derivative * dt;
 
     criterion.evaluate_error(
         dt,
-        current_d_state,
+        current_state_derivative,
         states.vector_at(index),
         next_state,
         d_states,
