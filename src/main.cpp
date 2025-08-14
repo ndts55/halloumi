@@ -52,6 +52,13 @@ struct Errors
         }
         Float velocity_error = *std::max_element(velocity_error_components.begin(), velocity_error_components.end());
 
+#ifndef NDEBUG
+        print_vector_mean(position_error_components, "Position error components");
+        print_failed_count(position_error_components, "Position error components", simulation.tolerances.position);
+        print_vector_mean(velocity_error_components, "Velocity error components");
+        print_failed_count(velocity_error_components, "Velocity error components", simulation.tolerances.velocity);
+#endif
+
         std::vector<Float> epoch_error_components(simulation.n_samples());
         std::transform(
             simulation.propagation_state.epochs.begin(),
@@ -78,21 +85,37 @@ bool validate(const Simulation &simulation)
     {
         std::cerr << "Position error: " << errors.position_error << " exceeds tolerance: " << simulation.tolerances.position << std::endl;
     }
+    else
+    {
+        std::cout << "Position error: " << errors.position_error << " within tolerance: " << simulation.tolerances.position << std::endl;
+    }
     if (!vel_passed)
     {
         std::cerr << "Velocity error: " << errors.velocity_error << " exceeds tolerance: " << simulation.tolerances.velocity << std::endl;
     }
+    else
+    {
+        std::cout << "Velocity error: " << errors.velocity_error << " within tolerance: " << simulation.tolerances.velocity << std::endl;
+    }
     if (!epoch_passed)
     {
         std::cerr << "Epoch error: " << errors.epoch_error << " exceeds tolerance: " << simulation.tolerances.time << std::endl;
+    }
+    else
+    {
+        std::cout << "Epoch error: " << errors.epoch_error << " within tolerance: " << simulation.tolerances.time << std::endl;
     }
     return pos_passed && vel_passed && epoch_passed;
 }
 
 int main()
 {
-    auto configuration = json_from_file("acceptance/acceptance.test.5-days.json");
+    const std::string file = "acceptance/acceptance.test.5-days.json";
+    std::cout << "Loading configuration from " << file << std::endl;
+    auto configuration = json_from_file(file);
     auto simulation = Simulation::from_json(configuration);
+    std::cout << "Loaded simulation with " << simulation.n_samples() << " samples." << std::endl;
+    std::cout << "Max Steps: " << simulation.rkf_parameters.max_steps << std::endl;
 
     std::cout << "Propagating" << std::endl;
     propagate(simulation);
