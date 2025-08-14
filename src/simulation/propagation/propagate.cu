@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
+#include <nlohmann/json.hpp>
 #include "core/types.cuh"
 #include "cuda/vec.cuh"
 #include "simulation/environment/ephemeris.cuh"
@@ -12,6 +13,7 @@
 #include "simulation/propagation/cuda_utils.cuh"
 #include "simulation/propagation/math_utils.cuh"
 #include "simulation/propagation/time_step_criterion.cuh"
+#include "utils.hpp"
 
 __global__ void prepare_simulation_run(
     // Input
@@ -228,6 +230,30 @@ __host__ bool all_terminated(
     return result;
 }
 
+void dump_d_states(const CudaArray3D<Float, STATE_DIM, RKF78::NStages> &d_states)
+{
+    auto array = nlohmann::json::array();
+    for (auto index = 0; index < d_states.n_vecs(); ++index)
+    {
+        auto states = nlohmann::json::array();
+        for (auto stage = 0; stage < RKF78::NStages; ++stage)
+        {
+            auto state = nlohmann::json::array();
+            for (auto dim = 0; dim < STATE_DIM; ++dim)
+            {
+                state.push_back(d_states.at(dim, stage, index));
+            }
+            states.push_back(state);
+        }
+        auto sample = nlohmann::json::object();
+        sample["index"] = index;
+        sample["states"] = states;
+        array.push_back(sample);
+    }
+
+    json_to_file(array, "d_states.json");
+}
+
 __host__ void propagate(Simulation &simulation)
 {
     prepare_device_memory(simulation);
@@ -236,13 +262,13 @@ __host__ void propagate(Simulation &simulation)
     auto bs = block_size_from_env();
     auto gs = grid_size(bs, n);
 
-    std::cout << "Grid size: " << gs << ", Block size: " << bs << std::endl;
-
     // set up bool reduction buffer for termination flag kernel
     CudaArray1D<bool> host_reduction_buffer(gs, false); // One entry per block
     check_cuda_error(host_reduction_buffer.prefetch_to_device());
     CudaArray3D<Float, STATE_DIM, RKF78::NStages> host_d_states(n);
     check_cuda_error(host_d_states.prefetch_to_device());
+
+    std::cout << "Preparing arrays" << std::endl;
 
     // 'get' device arrays
     const auto backwards_flags = simulation.propagation_state.backwards.get();
@@ -263,6 +289,8 @@ __host__ void propagate(Simulation &simulation)
     auto constants = simulation.constants.get();
     auto ephemeris = simulation.ephemeris.get();
 
+    std::cout << "Preparing simulation run" << std::endl;
+
     prepare_simulation_run<<<gs, bs>>>(
         end_epochs,
         start_epochs,
@@ -271,6 +299,8 @@ __host__ void propagate(Simulation &simulation)
         backwards_flags,
         next_dts);
     check_cuda_error(cudaGetLastError(), "prepare simulation run kernel launch failed");
+
+    std::cout << "Grid size: " << gs << ", Block size: " << bs << std::endl;
 
     bool reached_max_steps = true;
     for (auto step = 0; step < simulation.rkf_parameters.max_steps; ++step)
@@ -285,7 +315,9 @@ __host__ void propagate(Simulation &simulation)
             active_bodies,
             constants,
             ephemeris);
+#ifndef NDEBUG
         check_cuda_error(cudaGetLastError(), "evaluate ode kernel launch failed");
+#endif
 
         advance_step<<<gs, bs>>>(
             d_states,
@@ -296,7 +328,9 @@ __host__ void propagate(Simulation &simulation)
             last_dts,
             termination_flags,
             epochs);
+#ifndef NDEBUG
         check_cuda_error(cudaGetLastError(), "advance step kernel launch failed");
+#endif
 
         if (all_terminated(termination_flags, reduction_buffer, gs, bs))
         {
@@ -316,6 +350,10 @@ __host__ void propagate(Simulation &simulation)
     }
 
     sync_to_host(simulation);
+#ifndef NDEBUG
+    host_d_states.prefetch_to_host();
+    dump_d_states(host_d_states);
+#endif
 
     simulation.propagated = true;
 }
