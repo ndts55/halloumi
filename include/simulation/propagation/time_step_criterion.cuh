@@ -32,7 +32,7 @@ struct TimeStepCriterion
     {
         const auto dt_value = fabs(current_dt);
         const auto desired_error_magnitude = Vec<Float, STATE_DIM>{device_rkf_parameters.abs_tol} + (next_state.componentwise_abs().componentwise_max(current_state.componentwise_abs()) * device_rkf_parameters.scale_state + current_d_state.componentwise_abs() * device_rkf_parameters.scale_dstate * dt_value) * device_rkf_parameters.rel_tol;
-        const auto error = calculate_truncation_error(d_states, index);
+        const auto error = calculate_truncation_error(d_states, index) * dt_value;
         const auto error_ratio = (error / desired_error_magnitude).max_norm();
 
         if (error_ratio >= 1)
