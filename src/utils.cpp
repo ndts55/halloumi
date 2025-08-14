@@ -76,3 +76,14 @@ void print_json(const nlohmann::json &json)
         std::cout << "unsupported json type " << std::endl;
     }
 }
+
+void json_to_file(const nlohmann::json &json, const std::string &path)
+{
+    std::ofstream file(path);
+    if (!file.is_open())
+    {
+        throw std::invalid_argument("File is not open: " + path);
+    }
+
+    file << std::setw(4) << json << std::endl;
+}
