@@ -7,17 +7,17 @@
 #include "cuda/cuda_array.hpp"
 #include "simulation/environment/constants.cuh"
 
-using ActiveBodies = CudaArray1D<Integer>;
+using ActiveBodies = GlobalIntegerArray;
 
 struct PropagationState
 {
-    CudaArray2D<Float, STATE_DIM> states;
-    CudaArray1D<Float> epochs;
-    CudaArray1D<bool> terminated;
-    CudaArray1D<Float> last_dts;
-    CudaArray1D<Float> next_dts;
-    CudaArray1D<bool> simulation_ended;
-    CudaArray1D<bool> backwards;
+    GlobalStatesMatrix states;
+    GlobalFloatArray epochs;
+    GlobalBoolArray terminated;
+    GlobalFloatArray last_dts;
+    GlobalFloatArray next_dts;
+    GlobalBoolArray simulation_ended;
+    GlobalBoolArray backwards;
 };
 
 struct SamplesData
@@ -25,8 +25,8 @@ struct SamplesData
     std::size_t n_vecs;
     Integer center_of_integration;
     Float duration_in_days;
-    CudaArray1D<Float> end_epochs;
-    CudaArray1D<Float> start_epochs;
+    GlobalFloatArray end_epochs;
+    GlobalFloatArray start_epochs;
 };
 
 struct ExpectedPropagationState

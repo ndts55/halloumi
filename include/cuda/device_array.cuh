@@ -93,11 +93,11 @@ struct DeviceArray3D
 
     __device__ inline T &at(std::size_t dim, std::size_t stage, std::size_t idx)
     {
-        return data[get_3d_index(n_vecs, dim, stage, idx)];
+        return data[get_3d_index<VEC_SIZE>(n_vecs, dim, stage, idx)];
     }
     __device__ inline const T &at(std::size_t dim, std::size_t stage, std::size_t idx) const
     {
-        return data[get_3d_index(n_vecs, dim, stage, idx)];
+        return data[get_3d_index<VEC_SIZE>(n_vecs, dim, stage, idx)];
     }
 
     // Device-side iterators (over the flat data array)

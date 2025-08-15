@@ -45,7 +45,7 @@ struct TimeStepCriterion
         const StateVector &current_state_derivative,
         const StateVector &current_state,
         const StateVector &next_state,
-        const DerivativesDeviceTensor &d_states,
+        const DeviceDerivativesTensor &d_states,
         const CudaIndex &index)
     {
         const Float dt_value = fabs(current_dt);

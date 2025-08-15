@@ -8,11 +8,11 @@
 #include "cuda/vec.cuh"
 
 #pragma region Layout v1
-CudaArray1D<Float> load_ephemeris_data_v1(const nlohmann::json &core)
+GlobalFloatArray load_ephemeris_data_v1(const nlohmann::json &core)
 {
     std::size_t data_size = std::accumulate(core.begin(), core.end(), 0, [](const nlohmann::json &a, const nlohmann::json &b)
                                             { return a["data"].size() + b["data"].size(); });
-    CudaArray1D<Float> bodies(data_size);
+    GlobalFloatArray bodies(data_size);
     auto bodies_iterator = bodies.data().get();
     for (auto body : core)
     {
@@ -32,7 +32,7 @@ Ephemeris load_brie_v1(const nlohmann::json &core)
                                             { return a["data"].size() + b["data"].size(); });
 
     // Construct arrays
-    CudaArray1D<Float> bodies(data_size);
+    GlobalFloatArray bodies(data_size);
     CudaArray2D<Integer, INTSIZE> integers(n_bodies);
     CudaArray2D<Float, REALSIZE> floats(n_bodies);
 
@@ -84,7 +84,7 @@ Ephemeris load_brie_v2(const nlohmann::json &core)
 
     CudaArray2D<Integer, INTSIZE> integers(n_bodies);
     CudaArray2D<Float, REALSIZE> floats(n_bodies);
-    CudaArray1D<Float> data(core["data"].size());
+    GlobalFloatArray data(core["data"].size());
 
     std::copy(metadata["intMetadata"].begin(), metadata["intMetadata"].end(), integers.data().get());
     std::copy(metadata["doubleMetadata"].begin(), metadata["doubleMetadata"].end(), floats.data().get());
@@ -150,8 +150,8 @@ __device__ PositionVector interpolate_type_2_body_to_position(const DeviceEpheme
 
     // data = [ ...[other data; (data_offset)], interval radius, ...[intervals; (nintervals)], ...[coefficients; (nintervals * (pdeg + 1))] ]
     auto radius = eph.data_at(data_offset);
-    FloatDeviceArray intervals{/* data pointer */ eph.data.data + data_offset + 1, /* size */ (std::size_t)nintervals};
-    FloatDeviceArray coefficients{/* data pointer */ intervals.end(), /* size */ (std::size_t)nintervals * (pdeg + 1)};
+    DeviceFloatArray intervals{/* data pointer */ eph.data.data + data_offset + 1, /* size */ (std::size_t)nintervals};
+    DeviceFloatArray coefficients{/* data pointer */ intervals.end(), /* size */ (std::size_t)nintervals * (pdeg + 1)};
 
     std::size_t idx = (epoch - intervals.at(0)) / (2 * radius); // interval selection
     Float s = (epoch - intervals.at(idx)) / radius - 1.0;       // normalized  time coordinate

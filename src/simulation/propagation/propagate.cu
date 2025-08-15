@@ -17,14 +17,14 @@
 
 __global__ void prepare_simulation_run(
     // Input
-    const FloatDeviceArray end_epochs,
-    const FloatDeviceArray start_epochs,
+    const DeviceFloatArray end_epochs,
+    const DeviceFloatArray start_epochs,
 
     // Output
-    BoolDeviceArray termination_flags,
-    BoolDeviceArray simulation_ended,
-    BoolDeviceArray backwards,
-    FloatDeviceArray next_dts)
+    DeviceBoolArray termination_flags,
+    DeviceBoolArray simulation_ended,
+    DeviceBoolArray backwards,
+    DeviceFloatArray next_dts)
 {
     const auto i = index_in_grid();
     if (i >= termination_flags.n_vecs)
@@ -45,16 +45,16 @@ __global__ void prepare_simulation_run(
 
 __global__ void evaluate_ode(
     // Input data
-    const StatesDeviceMatrix states,
-    const FloatDeviceArray epochs,
-    const FloatDeviceArray next_dts,
+    const DeviceStatesMatrix states,
+    const DeviceFloatArray epochs,
+    const DeviceFloatArray next_dts,
     // Output data
-    DerivativesDeviceTensor d_states,
+    DeviceDerivativesTensor d_states,
     // Control flags
-    const BoolDeviceArray termination_flags,
+    const DeviceBoolArray termination_flags,
     // Physics configs
     const Integer center_of_integration,
-    const IntegerDeviceArray active_bodies,
+    const DeviceIntegerArray active_bodies,
     const DeviceConstants constants,
     const DeviceEphemeris ephemeris)
 {
@@ -69,11 +69,7 @@ __global__ void evaluate_ode(
 
     { // ! Optimization for stage = 0;
         // Simply read out the state from states
-        StateVector current_state{0.0};
-        for (auto dim = 0; dim < STATE_DIM; ++dim)
-        {
-            current_state[dim] = states.at(dim, index);
-        }
+        StateVector current_state = states.vector_at(index);
         auto state_derivative = calculate_state_derivative(
             current_state,
             epoch,
@@ -101,15 +97,15 @@ __global__ void evaluate_ode(
 
 __global__ void advance_step(
     // Input data
-    const DerivativesDeviceTensor d_states,
-    const FloatDeviceArray end_epochs,
-    const FloatDeviceArray start_epochs,
+    const DeviceDerivativesTensor d_states,
+    const DeviceFloatArray end_epochs,
+    const DeviceFloatArray start_epochs,
     // Output data
-    StatesDeviceMatrix states,
-    FloatDeviceArray next_dts,
-    FloatDeviceArray last_dts,
-    BoolDeviceArray termination_flags,
-    FloatDeviceArray epochs)
+    DeviceStatesMatrix states,
+    DeviceFloatArray next_dts,
+    DeviceFloatArray last_dts,
+    DeviceBoolArray termination_flags,
+    DeviceFloatArray epochs)
 {
     const auto index = index_in_grid();
 
@@ -175,7 +171,7 @@ __global__ void advance_step(
 
 /* We assume that the length of termination_flags is less than or equal to the number of threads in the grid.
  */
-__global__ void reduce_bool_with_and(const BoolDeviceArray termination_flags, BoolDeviceArray result_buffer)
+__global__ void reduce_bool_with_and(const DeviceBoolArray termination_flags, DeviceBoolArray result_buffer)
 {
     extern __shared__ bool block_buffer[];
 
@@ -208,8 +204,8 @@ __global__ void reduce_bool_with_and(const BoolDeviceArray termination_flags, Bo
 }
 
 __host__ bool all_terminated(
-    const BoolDeviceArray &termination_flags,
-    BoolDeviceArray &reduction_buffer,
+    const DeviceBoolArray &termination_flags,
+    DeviceBoolArray &reduction_buffer,
     std::size_t first_grid_size,
     std::size_t block_size)
 {
@@ -233,7 +229,7 @@ __host__ bool all_terminated(
     return result;
 }
 
-void dump_d_states(const CudaArray3D<Float, STATE_DIM, RKF78::NStages> &d_states)
+void dump_d_states(const GlobalDerivativesTensor &d_states)
 {
     auto array = nlohmann::json::array();
     for (auto index = 0; index < d_states.n_vecs(); ++index)
@@ -266,9 +262,9 @@ __host__ void propagate(Simulation &simulation)
     auto gs = grid_size(bs, n);
 
     // set up bool reduction buffer for termination flag kernel
-    CudaArray1D<bool> host_reduction_buffer(gs, false); // One entry per block
+    GlobalBoolArray host_reduction_buffer(gs, false); // One entry per block
     check_cuda_error(host_reduction_buffer.prefetch_to_device());
-    CudaArray3D<Float, STATE_DIM, RKF78::NStages> host_d_states(n);
+    GlobalDerivativesTensor host_d_states(n, 0.0);
     check_cuda_error(host_d_states.prefetch_to_device());
 
     std::cout << "Preparing arrays" << std::endl;

@@ -24,8 +24,8 @@ __device__ inline VelocityVector three_body_non_barycentric(const PositionVector
 
 __device__ StateVector calculate_current_state(
     // State data
-    const StatesDeviceMatrix &states,
-    const DerivativesDeviceTensor &d_states,
+    const DeviceStatesMatrix &states,
+    const DeviceDerivativesTensor &d_states,
     // Computation coordinates
     const CudaIndex &index,
     const int &stage,
@@ -37,11 +37,7 @@ __device__ StateVector calculate_current_state(
     for (auto st = 0; st < stage; ++st)
     {
         auto coefficient = RKF78::coefficient(stage, st);
-        // state += coefficient * d_states.at(st, index)
-        for (auto dim = 0; dim < STATE_DIM; ++dim)
-        {
-            state[dim] += coefficient * d_states.at(dim, st, index);
-        }
+        state += d_states.vector_at(st, index) * coefficient;
     }
 
     // add the current state
@@ -60,7 +56,7 @@ __device__ StateVector calculate_state_derivative(
     const Float &t,
     // Physics configs
     const Integer &center_of_integration,
-    const IntegerDeviceArray &active_bodies,
+    const DeviceIntegerArray &active_bodies,
     const DeviceConstants &constants,
     const DeviceEphemeris &ephemeris)
 {
@@ -98,7 +94,7 @@ __device__ StateVector calculate_state_derivative(
     return state.slice<VELOCITY_OFFSET, VELOCITY_DIM>().append(velocity_delta);
 }
 
-__device__ StateVector calculate_componentwise_truncation_error(const DerivativesDeviceTensor &d_states, const CudaIndex &index)
+__device__ StateVector calculate_componentwise_truncation_error(const DeviceDerivativesTensor &d_states, const CudaIndex &index)
 {
     StateVector sum{0.0};
     for (auto stage = 0; stage < RKF78::NStages; ++stage)
@@ -114,7 +110,7 @@ __device__ Float clamp_dt(const Float &dt)
     return min(device_rkf_parameters.max_dt_scale, max(device_rkf_parameters.min_dt_scale, dt));
 }
 
-__device__ StateVector calculate_final_state_derivative(const DerivativesDeviceTensor d_states, const CudaIndex &index)
+__device__ StateVector calculate_final_state_derivative(const DeviceDerivativesTensor d_states, const CudaIndex &index)
 {
     StateVector sum{0.0};
 

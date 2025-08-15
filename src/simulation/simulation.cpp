@@ -14,14 +14,14 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
     auto n_vecs = in_samples.size();
 
     // Mutable State
-    CudaArray2D<Float, STATE_DIM> states(n_vecs);
-    CudaArray1D<Float> epochs(n_vecs);
-    CudaArray1D<bool> terminated(n_vecs, false);
+    GlobalStatesMatrix states(n_vecs);
+    GlobalFloatArray epochs(n_vecs);
+    GlobalBoolArray terminated(n_vecs, false);
 
     // Immutable state that has to be calculated
     Float duration_in_days = configuration["simConfig"]["durationDays"];
-    CudaArray1D<Float> start_epochs(n_vecs);
-    CudaArray1D<Float> end_epochs(n_vecs);
+    GlobalFloatArray start_epochs(n_vecs);
+    GlobalFloatArray end_epochs(n_vecs);
 
     // Immutable expected state
     std::vector<StateVector> expected_states;
@@ -50,10 +50,10 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
         std::move(states),
         std::move(epochs),
         std::move(terminated),
-        /* last_dts */ CudaArray1D<Float>(n_vecs, 0.0f),
-        /* next_dts */ CudaArray1D<Float>(n_vecs, 0.0f),
-        /* simulation_ended */ CudaArray1D<bool>(n_vecs, false),
-        /* backwards */ CudaArray1D<bool>(n_vecs, false)};
+        /* last_dts */ GlobalFloatArray(n_vecs, 0.0f),
+        /* next_dts */ GlobalFloatArray(n_vecs, 0.0f),
+        /* simulation_ended */ GlobalBoolArray(n_vecs, false),
+        /* backwards */ GlobalBoolArray(n_vecs, false)};
     auto sd = SamplesData{
         n_vecs,
         /* center_of_integration */ samples_json["centre"],

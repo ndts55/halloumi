@@ -242,10 +242,15 @@ public:
     {
         data_ = make_managed_cuda_array<T>(n_vecs_ * VEC_SIZE * N_STAGES);
     }
+    CudaArray3D(std::size_t n_vecs, T initial_value) : n_vecs_(n_vecs)
+    {
+        data_ = make_managed_cuda_array<T>(n_vecs_ * VEC_SIZE * N_STAGES);
+        std::fill_n(data_.get(), size(), initial_value);
+    }
 
     inline T &at(std::size_t dim, std::size_t stage, std::size_t idx)
     {
-        auto index = get_3d_index(n_vecs_, dim, stage, idx);
+        auto index = get_3d_index<VEC_SIZE>(n_vecs_, dim, stage, idx);
 #ifndef NDEBUG
         if (index >= size())
         {
@@ -256,7 +261,7 @@ public:
     }
     inline const T &at(std::size_t dim, std::size_t stage, std::size_t idx) const
     {
-        auto index = get_3d_index(n_vecs_, dim, stage, idx);
+        auto index = get_3d_index<VEC_SIZE>(n_vecs_, dim, stage, idx);
 #ifndef NDEBUG
         if (index >= size())
         {

@@ -1,25 +1,24 @@
 #pragma once
-#include "core/types.cuh"
 #include <cstddef>
 #include <cuda_runtime.h>
 
 namespace RKF78
 {
-    constexpr Integer OdeOrder = 1;
-    constexpr Integer NStages = 13;
-    constexpr Integer Order = 8;
+    constexpr std::size_t OdeOrder = 1;
+    constexpr std::size_t NStages = 13;
+    constexpr std::size_t Order = 8;
     constexpr bool IsEmbedded = true; // not actually necessary
 
     namespace host
     {
         // Nodes for the stages, used in the main method, omits the first value
-        static const Float c[NStages - 1] = {2. / 27., 1. / 9., 1. / 6., 5. / 12., 1. / 2., 5. / 6., 1. / 6., 2. / 3., 1. / 3., 1., 0., 1.};
+        static const double c[NStages - 1] = {2. / 27., 1. / 9., 1. / 6., 5. / 12., 1. / 2., 5. / 6., 1. / 6., 2. / 3., 1. / 3., 1., 0., 1.};
         // Weights for the stages, for the main method
-        static const Float b[NStages] = {0., 0., 0., 0., 0., 34. / 105., 9. / 35., 9. / 35., 9. / 20., 9. / 20., 0., 41. / 80., 41. / 840.};
+        static const double b[NStages] = {0., 0., 0., 0., 0., 34. / 105., 9. / 35., 9. / 35., 9. / 20., 9. / 20., 0., 41. / 80., 41. / 840.};
         // Embedded weights, for the embedded method
-        static const Float be[NStages] = {41. / 80., 0., 0., 0., 0., 0., 0., 0., 0., 0., 41. / 80., -41. / 80., -41. / 80.};
+        static const double be[NStages] = {41. / 80., 0., 0., 0., 0., 0., 0., 0., 0., 0., 41. / 80., -41. / 80., -41. / 80.};
         // Coefficient matrix, leaves out first row, and last column, which are always 0
-        static const Float a[NStages - 1][NStages - 1] = {
+        static const double a[NStages - 1][NStages - 1] = {
             {2. / 27., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.},
             {1. / 36., 1. / 12., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.},
             {1. / 24., 0., 1. / 8., 0., 0., 0., 0., 0., 0., 0., 0., 0.},
@@ -34,12 +33,12 @@ namespace RKF78
             {-1777. / 410., 0., 0., -341. / 164., 4496. / 1025., -289. / 82., 2193. / 410., 51. / 82., 33. / 164., 12. / 41., 0., 1.}};
     }
 
-    extern __constant__ Float d_c[NStages - 1];
-    extern __constant__ Float d_b[NStages];
-    extern __constant__ Float d_be[NStages];
-    extern __constant__ Float d_a[NStages - 1][NStages - 1];
+    extern __constant__ double d_c[NStages - 1];
+    extern __constant__ double d_b[NStages];
+    extern __constant__ double d_be[NStages];
+    extern __constant__ double d_a[NStages - 1][NStages - 1];
 
-    __device__ inline Float coefficient(std::size_t i, std::size_t j)
+    __device__ inline double coefficient(std::size_t i, std::size_t j)
     {
         if (i == 0 || j == (NStages - 1))
         {
@@ -49,11 +48,11 @@ namespace RKF78
         return d_a[i][j];
     }
 
-    __device__ inline Float weight(std::size_t i) { return d_b[i]; }
+    __device__ inline double weight(std::size_t i) { return d_b[i]; }
 
-    __device__ inline Float embedded_weight(std::size_t i) { return d_be[i]; }
+    __device__ inline double embedded_weight(std::size_t i) { return d_be[i]; }
 
-    __device__ inline Float node(std::size_t i)
+    __device__ inline double node(std::size_t i)
     {
         if (i == 0)
         {
