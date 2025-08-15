@@ -24,8 +24,8 @@ __device__ inline VelocityVector three_body_non_barycentric(const PositionVector
 
 __device__ StateVector calculate_current_state(
     // State data
-    const DeviceArray2D<Float, STATE_DIM> &states,
-    const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states,
+    const StatesDeviceMatrix &states,
+    const DerivativesDeviceTensor &d_states,
     // Computation coordinates
     const CudaIndex &index,
     const int &stage,
@@ -98,7 +98,7 @@ __device__ StateVector calculate_state_derivative(
     return state.slice<VELOCITY_OFFSET, VELOCITY_DIM>().append(velocity_delta);
 }
 
-__device__ StateVector calculate_componentwise_truncation_error(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states, const CudaIndex &index)
+__device__ StateVector calculate_componentwise_truncation_error(const DerivativesDeviceTensor &d_states, const CudaIndex &index)
 {
     StateVector sum{0.0};
     for (auto stage = 0; stage < RKF78::NStages; ++stage)
@@ -114,7 +114,7 @@ __device__ Float clamp_dt(const Float &dt)
     return min(device_rkf_parameters.max_dt_scale, max(device_rkf_parameters.min_dt_scale, dt));
 }
 
-__device__ StateVector calculate_final_state_derivative(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states, const CudaIndex &index)
+__device__ StateVector calculate_final_state_derivative(const DerivativesDeviceTensor d_states, const CudaIndex &index)
 {
     StateVector sum{0.0};
 

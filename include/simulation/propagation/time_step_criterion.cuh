@@ -45,7 +45,7 @@ struct TimeStepCriterion
         const StateVector &current_state_derivative,
         const StateVector &current_state,
         const StateVector &next_state,
-        const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states,
+        const DerivativesDeviceTensor &d_states,
         const CudaIndex &index)
     {
         const Float dt_value = fabs(current_dt);
@@ -81,7 +81,7 @@ struct TimeStepCriterion
         const Float next_epoch = current_epoch + current_dt;
         this->current_dt = current_dt;
         this->next_dt = next_dt;
-        const Float tolerance = 1e-5;
+        constexpr Float tolerance = 1e-5;
         if (forward ? (next_epoch > end_epoch + tolerance) : (next_epoch < end_epoch - tolerance))
         {
             // this step is too far

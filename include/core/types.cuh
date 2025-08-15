@@ -1,5 +1,7 @@
 #pragma once
 #include "cuda/vec.cuh"
+#include "cuda/device_array.cuh"
+#include "tableau.cuh"
 
 #pragma region State Vector Dimensions
 
@@ -19,5 +21,7 @@ using Float = double;
 using StateVector = Vec<Float, STATE_DIM>;
 using PositionVector = Vec<Float, POSITION_DIM>;
 using VelocityVector = Vec<Float, VELOCITY_DIM>;
+using StatesDeviceMatrix = DeviceArray2D<Float, STATE_DIM>;
+using DerivativesDeviceTensor = DeviceArray3D<Float, STATE_DIM, RKF78::NStages>;
 
 #pragma endregion
