@@ -45,11 +45,11 @@ __global__ void prepare_simulation_run(
 
 __global__ void evaluate_ode(
     // Input data
-    const DeviceArray2D<Float, STATE_DIM> states,
+    const StatesDeviceMatrix states,
     const DeviceArray1D<Float> epochs,
     const DeviceArray1D<Float> next_dts,
     // Output data
-    DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states,
+    DerivativesDeviceTensor d_states,
     // Control flags
     const DeviceArray1D<bool> termination_flags,
     // Physics configs
@@ -99,14 +99,13 @@ __global__ void evaluate_ode(
     }
 }
 
-// TODO investigate whether this kernel misbehaves such that the propagation of the 5 day test does not finish until max steps
 __global__ void advance_step(
     // Input data
-    const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states,
+    const DerivativesDeviceTensor d_states,
     const DeviceArray1D<Float> end_epochs,
     const DeviceArray1D<Float> start_epochs,
     // Output data
-    DeviceArray2D<Float, STATE_DIM> states,
+    StatesDeviceMatrix states,
     DeviceArray1D<Float> next_dts,
     DeviceArray1D<Float> last_dts,
     DeviceArray1D<bool> termination_flags,
@@ -123,12 +122,13 @@ __global__ void advance_step(
     auto criterion = TimeStepCriterion::from_dts(dt, dt * device_rkf_parameters.max_dt_scale);
 
     StateVector current_state_derivative = calculate_final_state_derivative(d_states, index);
-    StateVector next_state = states.vector_at(index) + (current_state_derivative * dt);
+    StateVector current_state = states.vector_at(index);
+    StateVector next_state = current_state + (current_state_derivative * dt);
 
     criterion.evaluate_error(
         dt,
         current_state_derivative,
-        states.vector_at(index),
+        current_state,
         next_state,
         d_states,
         index);
@@ -150,24 +150,26 @@ __global__ void advance_step(
         criterion.terminate = (criterion.reject ? abs(criterion.current_dt) : abs(criterion.next_dt)) < device_rkf_parameters.min_time_step;
     }
 
+    // Set termination flag, we already know what it ought to be
+    termination_flags.at(index) = criterion.terminate;
+
     if (criterion.reject)
     {
         // reject the current time step
         // results are discarded and re-evaluated with shorter dt
         next_dts.at(index) = criterion.current_dt;
-        termination_flags.at(index) = criterion.terminate;
-        return;
     }
-
-    // no rejection, no termination
-    // advance
-    epochs.at(index) += dt;
-    states.set_vector_at(index, next_state);
-    last_dts.at(index) = dt;
-    termination_flags.at(index) = criterion.terminate;
-    if (!criterion.terminate)
+    else
     {
-        next_dts.at(index) = criterion.next_dt;
+        // no rejection, no termination
+        // advance
+        epochs.at(index) += dt;
+        states.set_vector_at(index, next_state);
+        last_dts.at(index) = dt;
+        if (!criterion.terminate)
+        {
+            next_dts.at(index) = criterion.next_dt;
+        }
     }
 }
 
