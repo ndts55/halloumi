@@ -83,8 +83,8 @@ __global__ void evaluate_ode(
     // ! Starts at 1 due to optimization above
     for (auto stage = 1; stage < RKF78::NStages; ++stage)
     {
-        const auto current_state = calculate_current_state(states, d_states, index, stage, dt);
-        auto state_derivative = calculate_state_derivative(
+        const StateVector current_state = calculate_current_state(states, d_states, index, stage, dt);
+        StateVector state_derivative = calculate_state_derivative(
             current_state,
             /* t */ epoch + RKF78::node(stage) * dt,
             center_of_integration,
@@ -229,7 +229,7 @@ __host__ bool all_terminated(
     return result;
 }
 
-void dump_d_states(const GlobalDerivativesTensor &d_states)
+void dump_d_states(const GlobalDerivativesTensor &d_states, const std::string &filename = "d_states.json")
 {
     auto array = nlohmann::json::array();
     for (auto index = 0; index < d_states.n_vecs(); ++index)
@@ -250,7 +250,7 @@ void dump_d_states(const GlobalDerivativesTensor &d_states)
         array.push_back(sample);
     }
 
-    json_to_file(array, "d_states.json");
+    json_to_file(array, filename);
 }
 
 __host__ void propagate(Simulation &simulation)
@@ -266,6 +266,7 @@ __host__ void propagate(Simulation &simulation)
     check_cuda_error(host_reduction_buffer.prefetch_to_device());
     GlobalDerivativesTensor host_d_states(n, 0.0);
     check_cuda_error(host_d_states.prefetch_to_device());
+    check_cuda_error(cudaDeviceSynchronize());
 
     std::cout << "Preparing arrays" << std::endl;
 
