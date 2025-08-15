@@ -1,4 +1,4 @@
-d_states.json
+*.json
 out/
 data/
 deps/
