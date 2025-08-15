@@ -69,7 +69,7 @@ __global__ void evaluate_ode(
 
     { // ! Optimization for stage = 0;
         // Simply read out the state from states
-        Vec<Float, STATE_DIM> current_state{0.0};
+        StateVector current_state{0.0};
         for (auto dim = 0; dim < STATE_DIM; ++dim)
         {
             current_state[dim] = states.at(dim, index);
@@ -99,6 +99,7 @@ __global__ void evaluate_ode(
     }
 }
 
+// TODO investigate whether this kernel misbehaves such that the propagation of the 5 day test does not finish until max steps
 __global__ void advance_step(
     // Input data
     const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states,
@@ -121,8 +122,8 @@ __global__ void advance_step(
     const auto dt = next_dts.at(index);
     auto criterion = TimeStepCriterion::from_dts(dt, dt * device_rkf_parameters.max_dt_scale);
 
-    auto current_state_derivative = calculate_final_state_derivative(d_states, index) * dt + states.vector_at(index);
-    Vec<Float, STATE_DIM> next_state = states.vector_at(index) + current_state_derivative * dt;
+    StateVector current_state_derivative = calculate_final_state_derivative(d_states, index);
+    StateVector next_state = states.vector_at(index) + (current_state_derivative * dt);
 
     criterion.evaluate_error(
         dt,
@@ -352,6 +353,7 @@ __host__ void propagate(Simulation &simulation)
     sync_to_host(simulation);
 #ifndef NDEBUG
     host_d_states.prefetch_to_host();
+    check_cuda_error(cudaDeviceSynchronize());
     dump_d_states(host_d_states);
 #endif
 

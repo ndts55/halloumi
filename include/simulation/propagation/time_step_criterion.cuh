@@ -6,6 +6,24 @@
 #include "cuda/device_array.cuh"
 #include "simulation/propagation/math_utils.cuh"
 
+__device__ inline StateVector calculate_desired_error_magnitude(
+    const StateVector &current_state_derivative,
+    const StateVector &current_state,
+    const StateVector &next_state,
+    const Float &dt_value)
+{
+    auto scaled_states_max = next_state.componentwise_abs().componentwise_max(current_state.componentwise_abs()) * device_rkf_parameters.scale_state;
+
+    auto scaled_current_d_state = current_state_derivative.componentwise_abs() * device_rkf_parameters.scale_dstate * dt_value;
+
+    auto error_scale_base = scaled_states_max + scaled_current_d_state;
+    auto relative_error_tolerance = error_scale_base * device_rkf_parameters.rel_tol;
+
+    auto desired_error_magnitude = relative_error_tolerance + device_rkf_parameters.abs_tol;
+
+    return desired_error_magnitude;
+}
+
 struct TimeStepCriterion
 {
     bool reject = false;
@@ -24,16 +42,20 @@ struct TimeStepCriterion
 
     __device__ void evaluate_error(
         const Float &current_dt,
-        const Vec<Float, STATE_DIM> &current_state_derivative,
-        const Vec<Float, STATE_DIM> &current_state,
-        const Vec<Float, STATE_DIM> &next_state,
+        const StateVector &current_state_derivative,
+        const StateVector &current_state,
+        const StateVector &next_state,
         const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states,
         const CudaIndex &index)
     {
-        const auto dt_value = fabs(current_dt);
-        const auto desired_error_magnitude = Vec<Float, STATE_DIM>{device_rkf_parameters.abs_tol} + (next_state.componentwise_abs().componentwise_max(current_state.componentwise_abs()) * device_rkf_parameters.scale_state + current_state_derivative.componentwise_abs() * device_rkf_parameters.scale_dstate * dt_value) * device_rkf_parameters.rel_tol;
-        const auto error = calculate_truncation_error(d_states, index) * dt_value;
-        const auto error_ratio = (error / desired_error_magnitude).max_norm();
+        const Float dt_value = fabs(current_dt);
+        const StateVector desired_error_magnitude = calculate_desired_error_magnitude(
+            current_state_derivative,
+            current_state,
+            next_state,
+            dt_value);
+        const StateVector error = calculate_componentwise_truncation_error(d_states, index) * dt_value;
+        const Float error_ratio = (error / desired_error_magnitude).max_norm();
 
         if (error_ratio >= 1)
         {

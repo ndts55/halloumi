@@ -24,7 +24,7 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
     CudaArray1D<Float> end_epochs(n_vecs);
 
     // Immutable expected state
-    std::vector<Vec<Float, STATE_DIM>> expected_states;
+    std::vector<StateVector> expected_states;
     expected_states.reserve(n_vecs);
     std::vector<Float> expected_epochs;
     expected_epochs.reserve(n_vecs);

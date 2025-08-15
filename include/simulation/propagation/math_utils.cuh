@@ -22,7 +22,7 @@ __device__ inline Vec<Float, VELOCITY_DIM> three_body_non_barycentric(const Vec<
     return three_body_barycentric(source_position, body_position, gm) + two_body(body_position, gm);
 }
 
-__device__ Vec<Float, STATE_DIM> calculate_current_state(
+__device__ StateVector calculate_current_state(
     // State data
     const DeviceArray2D<Float, STATE_DIM> &states,
     const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states,
@@ -31,7 +31,7 @@ __device__ Vec<Float, STATE_DIM> calculate_current_state(
     const int &stage,
     const Float &dt)
 {
-    Vec<Float, STATE_DIM> state = {0.0};
+    StateVector state = {0.0};
 
     // sum intermediate d_states up to stage
     for (auto st = 0; st < stage; ++st)
@@ -54,9 +54,9 @@ __device__ Vec<Float, STATE_DIM> calculate_current_state(
     return state;
 }
 
-__device__ Vec<Float, STATE_DIM> calculate_state_derivative(
+__device__ StateVector calculate_state_derivative(
     // Primary inputes
-    const Vec<Float, STATE_DIM> &state,
+    const StateVector &state,
     const Float &t,
     // Physics configs
     const Integer &center_of_integration,
@@ -98,9 +98,9 @@ __device__ Vec<Float, STATE_DIM> calculate_state_derivative(
     return state.slice<VELOCITY_OFFSET, VELOCITY_DIM>().append(velocity_delta);
 }
 
-__device__ Vec<Float, STATE_DIM> calculate_truncation_error(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states, const CudaIndex &index)
+__device__ StateVector calculate_componentwise_truncation_error(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> &d_states, const CudaIndex &index)
 {
-    Vec<Float, STATE_DIM> sum{0.0};
+    StateVector sum{0.0};
     for (auto stage = 0; stage < RKF78::NStages; ++stage)
     {
         sum += d_states.vector_at(stage, index) * RKF78::embedded_weight(stage);
@@ -114,9 +114,9 @@ __device__ Float clamp_dt(const Float &dt)
     return min(device_rkf_parameters.max_dt_scale, max(device_rkf_parameters.min_dt_scale, dt));
 }
 
-__device__ Vec<Float, STATE_DIM> calculate_final_state_derivative(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states, const CudaIndex &index)
+__device__ StateVector calculate_final_state_derivative(const DeviceArray3D<Float, STATE_DIM, RKF78::NStages> d_states, const CudaIndex &index)
 {
-    Vec<Float, STATE_DIM> sum{0.0};
+    StateVector sum{0.0};
 
     for (auto stage = 0; stage < RKF78::NStages; ++stage)
     {
