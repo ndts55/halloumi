@@ -7,6 +7,7 @@
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/environment/constants.cuh"
 
+// TODO check two body and three body functions for possible mistakes
 __device__ inline VelocityVector two_body(const PositionVector &position_delta, const Float &gm)
 {
     return position_delta * -gm * position_delta.reciprocal_cubed_norm();
@@ -31,22 +32,20 @@ __device__ StateVector calculate_current_state(
     const int &stage,
     const Float &dt)
 {
-    StateVector state = {0.0};
+    StateVector state{0.0};
 
     // sum intermediate d_states up to stage
     for (auto st = 0; st < stage; ++st)
     {
-        auto coefficient = RKF78::coefficient(stage, st);
+        Float coefficient = RKF78::coefficient(stage, st);
         state += d_states.vector_at(st, index) * coefficient;
     }
 
     // add the current state
     // state = states.at(index) + dt * state
-    for (auto dim = 0; dim < STATE_DIM; ++dim)
-    {
-        state[dim] *= dt;
-        state[dim] += states.at(dim, index);
-    }
+    state *= dt;
+    state += states.vector_at(index);
+
     return state;
 }
 
@@ -60,7 +59,7 @@ __device__ StateVector calculate_state_derivative(
     const DeviceConstants &constants,
     const DeviceEphemeris &ephemeris)
 {
-    const auto state_position = state.slice<POSITION_OFFSET, POSITION_DIM>();
+    const PositionVector state_position = state.slice<POSITION_OFFSET, POSITION_DIM>();
 
     // velocity delta, i.e., acceleration
     VelocityVector velocity_delta{0.0};
@@ -68,8 +67,8 @@ __device__ StateVector calculate_state_derivative(
     {
         for (auto i = 0; i < active_bodies.n_vecs; ++i)
         {
-            const auto target = active_bodies.at(i);
-            const auto body_position = ephemeris.calculate_position(t, target, center_of_integration);
+            const Integer target = active_bodies.at(i);
+            const PositionVector body_position = ephemeris.calculate_position(t, target, center_of_integration);
             velocity_delta += three_body_barycentric(state_position, body_position, constants.gm_for(target));
         }
     }
@@ -77,15 +76,15 @@ __device__ StateVector calculate_state_derivative(
     {
         for (auto i = 0; i < active_bodies.n_vecs; ++i)
         {
-            const auto target = active_bodies.at(i);
+            const Integer target = active_bodies.at(i);
             if (target != center_of_integration)
             {
-                const auto body_position = ephemeris.calculate_position(t, target, center_of_integration);
+                const PositionVector body_position = ephemeris.calculate_position(t, target, center_of_integration);
                 velocity_delta += three_body_non_barycentric(state_position, body_position, constants.gm_for(target));
             }
             else
             {
-                const auto gm = constants.gm_for(target);
+                const Float gm = constants.gm_for(target);
                 velocity_delta += two_body(state_position, gm);
             }
         }
