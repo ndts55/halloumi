@@ -17,5 +17,7 @@ using Integer = long int;
 using Float = double;
 
 using StateVector = Vec<Float, STATE_DIM>;
+using PositionVector = Vec<Float, POSITION_DIM>;
+using VelocityVector = Vec<Float, VELOCITY_DIM>;
 
 #pragma endregion

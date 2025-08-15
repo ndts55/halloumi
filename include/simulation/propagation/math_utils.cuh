@@ -7,17 +7,17 @@
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/environment/constants.cuh"
 
-__device__ inline Vec<Float, VELOCITY_DIM> two_body(const Vec<Float, POSITION_DIM> &position_delta, const Float &gm)
+__device__ inline VelocityVector two_body(const PositionVector &position_delta, const Float &gm)
 {
     return position_delta * -gm * position_delta.reciprocal_cubed_norm();
 }
 
-__device__ inline Vec<Float, VELOCITY_DIM> three_body_barycentric(const Vec<Float, POSITION_DIM> &source_position, const Vec<Float, POSITION_DIM> &body_position, const Float &gm)
+__device__ inline VelocityVector three_body_barycentric(const PositionVector &source_position, const PositionVector &body_position, const Float &gm)
 {
     return two_body(source_position - body_position, gm);
 }
 
-__device__ inline Vec<Float, VELOCITY_DIM> three_body_non_barycentric(const Vec<Float, POSITION_DIM> &source_position, const Vec<Float, POSITION_DIM> &body_position, const Float &gm)
+__device__ inline VelocityVector three_body_non_barycentric(const PositionVector &source_position, const PositionVector &body_position, const Float &gm)
 {
     return three_body_barycentric(source_position, body_position, gm) + two_body(body_position, gm);
 }
@@ -67,7 +67,7 @@ __device__ StateVector calculate_state_derivative(
     const auto state_position = state.slice<POSITION_OFFSET, POSITION_DIM>();
 
     // velocity delta, i.e., acceleration
-    Vec<Float, VELOCITY_DIM> velocity_delta{0.0};
+    VelocityVector velocity_delta{0.0};
     if (center_of_integration == 0)
     {
         for (auto i = 0; i < active_bodies.n_vecs; ++i)

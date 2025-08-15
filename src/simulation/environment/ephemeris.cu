@@ -142,7 +142,7 @@ Ephemeris Ephemeris::from_brie(const nlohmann::json &json)
 /*
 Reconstructs a continuous position vector from discrete Chebyshev coefficients stored in the ephemeris data.
 */
-__device__ Vec<Float, POSITION_DIM> interpolate_type_2_body_to_position(const DeviceEphemeris &eph, const Integer &body_index, const Float &epoch)
+__device__ PositionVector interpolate_type_2_body_to_position(const DeviceEphemeris &eph, const Integer &body_index, const Float &epoch)
 {
     auto nintervals = eph.nintervals_at(body_index);
     auto data_offset = eph.dataoffset_at(body_index);
@@ -156,9 +156,9 @@ __device__ Vec<Float, POSITION_DIM> interpolate_type_2_body_to_position(const De
     std::size_t idx = (epoch - intervals.at(0)) / (2 * radius); // interval selection
     Float s = (epoch - intervals.at(idx)) / radius - 1.0;       // normalized  time coordinate
     // use clenshaw recurrence relation to efficiently calculate chebyshev polynomials
-    Vec<Float, POSITION_DIM> position = {0.0};
-    Vec<Float, POSITION_DIM> w1 = {0.0};
-    Vec<Float, POSITION_DIM> w2 = {0.0};
+    PositionVector position = {0.0};
+    PositionVector w1 = {0.0};
+    PositionVector w2 = {0.0};
     Float s2 = 2 * s;
     for (auto i = pdeg; i > 0; --i)
     {
@@ -169,9 +169,9 @@ __device__ Vec<Float, POSITION_DIM> interpolate_type_2_body_to_position(const De
     return (position * s - w1) + coefficients.at(idx);
 }
 
-__device__ Vec<Float, POSITION_DIM> read_position(const DeviceEphemeris &eph, const Float &epoch, const Integer &target, const Integer &center)
+__device__ PositionVector read_position(const DeviceEphemeris &eph, const Float &epoch, const Integer &target, const Integer &center)
 {
-    Vec<Float, POSITION_DIM> position = {0.0};
+    PositionVector position = {0.0};
     if (target == center)
     {
         return position;
@@ -188,7 +188,7 @@ __device__ Vec<Float, POSITION_DIM> read_position(const DeviceEphemeris &eph, co
     return position;
 }
 
-__device__ Vec<Float, POSITION_DIM> DeviceEphemeris::calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const
+__device__ PositionVector DeviceEphemeris::calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const
 {
     auto cc = common_center(target, center_of_integration);
     auto xt = read_position(*this, epoch, target, cc);

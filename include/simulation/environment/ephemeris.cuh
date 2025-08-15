@@ -157,7 +157,7 @@ struct DeviceEphemeris
         }
     }
 
-    __device__ Vec<Float, POSITION_DIM> calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const;
+    __device__ PositionVector calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const;
 };
 
 struct Ephemeris
