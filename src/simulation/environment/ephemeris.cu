@@ -150,8 +150,8 @@ __device__ PositionVector interpolate_type_2_body_to_position(const DeviceEpheme
 
     // data = [ ...[other data; (data_offset)], interval radius, ...[intervals; (nintervals)], ...[coefficients; (nintervals * (pdeg + 1))] ]
     auto radius = eph.data_at(data_offset);
-    DeviceArray1D<Float> intervals{/* data pointer */ eph.data.data + data_offset + 1, /* size */ (std::size_t)nintervals};
-    DeviceArray1D<Float> coefficients{/* data pointer */ intervals.end(), /* size */ (std::size_t)nintervals * (pdeg + 1)};
+    FloatDeviceArray intervals{/* data pointer */ eph.data.data + data_offset + 1, /* size */ (std::size_t)nintervals};
+    FloatDeviceArray coefficients{/* data pointer */ intervals.end(), /* size */ (std::size_t)nintervals * (pdeg + 1)};
 
     std::size_t idx = (epoch - intervals.at(0)) / (2 * radius); // interval selection
     Float s = (epoch - intervals.at(idx)) / radius - 1.0;       // normalized  time coordinate

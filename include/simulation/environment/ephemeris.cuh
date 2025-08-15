@@ -32,12 +32,12 @@ enum RealMembers
 struct DeviceEphemeris
 {
     // TODO use pointer types directly and store n_vecs only once
-    DeviceArray1D<Float> data; // ? is this really a 1d array?
+    FloatDeviceArray data; // ? is this really a 1d array?
     DeviceArray2D<Integer, INTSIZE> integers;
     DeviceArray2D<Float, REALSIZE> floats;
 
     DeviceEphemeris() = default;
-    DeviceEphemeris(DeviceArray1D<Float> &&d, DeviceArray2D<Integer, INTSIZE> &&i, DeviceArray2D<Float, REALSIZE> &&f)
+    DeviceEphemeris(FloatDeviceArray &&d, DeviceArray2D<Integer, INTSIZE> &&i, DeviceArray2D<Float, REALSIZE> &&f)
         : data(d), integers(i), floats(f) {}
 
     // Integers

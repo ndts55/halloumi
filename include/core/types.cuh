@@ -21,6 +21,9 @@ using Float = double;
 using StateVector = Vec<Float, STATE_DIM>;
 using PositionVector = Vec<Float, POSITION_DIM>;
 using VelocityVector = Vec<Float, VELOCITY_DIM>;
+using FloatDeviceArray = DeviceArray1D<Float>;
+using IntegerDeviceArray = DeviceArray1D<Integer>;
+using BoolDeviceArray = DeviceArray1D<bool>;
 using StatesDeviceMatrix = DeviceArray2D<Float, STATE_DIM>;
 using DerivativesDeviceTensor = DeviceArray3D<Float, STATE_DIM, RKF78::NStages>;
 

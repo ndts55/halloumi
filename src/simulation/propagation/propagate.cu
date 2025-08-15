@@ -17,14 +17,14 @@
 
 __global__ void prepare_simulation_run(
     // Input
-    const DeviceArray1D<Float> end_epochs,
-    const DeviceArray1D<Float> start_epochs,
+    const FloatDeviceArray end_epochs,
+    const FloatDeviceArray start_epochs,
 
     // Output
-    DeviceArray1D<bool> termination_flags,
-    DeviceArray1D<bool> simulation_ended,
-    DeviceArray1D<bool> backwards,
-    DeviceArray1D<Float> next_dts)
+    BoolDeviceArray termination_flags,
+    BoolDeviceArray simulation_ended,
+    BoolDeviceArray backwards,
+    FloatDeviceArray next_dts)
 {
     const auto i = index_in_grid();
     if (i >= termination_flags.n_vecs)
@@ -46,15 +46,15 @@ __global__ void prepare_simulation_run(
 __global__ void evaluate_ode(
     // Input data
     const StatesDeviceMatrix states,
-    const DeviceArray1D<Float> epochs,
-    const DeviceArray1D<Float> next_dts,
+    const FloatDeviceArray epochs,
+    const FloatDeviceArray next_dts,
     // Output data
     DerivativesDeviceTensor d_states,
     // Control flags
-    const DeviceArray1D<bool> termination_flags,
+    const BoolDeviceArray termination_flags,
     // Physics configs
     const Integer center_of_integration,
-    const DeviceArray1D<Integer> active_bodies,
+    const IntegerDeviceArray active_bodies,
     const DeviceConstants constants,
     const DeviceEphemeris ephemeris)
 {
@@ -102,14 +102,14 @@ __global__ void evaluate_ode(
 __global__ void advance_step(
     // Input data
     const DerivativesDeviceTensor d_states,
-    const DeviceArray1D<Float> end_epochs,
-    const DeviceArray1D<Float> start_epochs,
+    const FloatDeviceArray end_epochs,
+    const FloatDeviceArray start_epochs,
     // Output data
     StatesDeviceMatrix states,
-    DeviceArray1D<Float> next_dts,
-    DeviceArray1D<Float> last_dts,
-    DeviceArray1D<bool> termination_flags,
-    DeviceArray1D<Float> epochs)
+    FloatDeviceArray next_dts,
+    FloatDeviceArray last_dts,
+    BoolDeviceArray termination_flags,
+    FloatDeviceArray epochs)
 {
     const auto index = index_in_grid();
 
@@ -175,7 +175,7 @@ __global__ void advance_step(
 
 /* We assume that the length of termination_flags is less than or equal to the number of threads in the grid.
  */
-__global__ void reduce_bool_with_and(const DeviceArray1D<bool> termination_flags, DeviceArray1D<bool> result_buffer)
+__global__ void reduce_bool_with_and(const BoolDeviceArray termination_flags, BoolDeviceArray result_buffer)
 {
     extern __shared__ bool block_buffer[];
 
@@ -208,8 +208,8 @@ __global__ void reduce_bool_with_and(const DeviceArray1D<bool> termination_flags
 }
 
 __host__ bool all_terminated(
-    const DeviceArray1D<bool> &termination_flags,
-    DeviceArray1D<bool> &reduction_buffer,
+    const BoolDeviceArray &termination_flags,
+    BoolDeviceArray &reduction_buffer,
     std::size_t first_grid_size,
     std::size_t block_size)
 {

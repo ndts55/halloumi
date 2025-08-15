@@ -40,11 +40,11 @@ namespace celestial_constants
 struct DeviceConstants
 {
 private:
-    DeviceArray1D<Integer> body_ids;
-    DeviceArray1D<Float> gms;
+    IntegerDeviceArray body_ids;
+    FloatDeviceArray gms;
 
 public:
-    DeviceConstants(DeviceArray1D<Integer> &&ids, DeviceArray1D<Float> &&g)
+    DeviceConstants(IntegerDeviceArray &&ids, FloatDeviceArray &&g)
         : body_ids(std::move(ids)), gms(std::move(g)) {}
 
     __device__ inline std::size_t index_of(Integer body_id) const

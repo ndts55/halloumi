@@ -60,7 +60,7 @@ __device__ StateVector calculate_state_derivative(
     const Float &t,
     // Physics configs
     const Integer &center_of_integration,
-    const DeviceArray1D<Integer> &active_bodies,
+    const IntegerDeviceArray &active_bodies,
     const DeviceConstants &constants,
     const DeviceEphemeris &ephemeris)
 {
