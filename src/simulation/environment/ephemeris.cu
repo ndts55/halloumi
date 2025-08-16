@@ -142,36 +142,47 @@ Ephemeris Ephemeris::from_brie(const nlohmann::json &json)
 /*
 Reconstructs a continuous position vector from discrete Chebyshev coefficients stored in the ephemeris data.
 */
-__device__ PositionVector interpolate_type_2_body_to_position(const DeviceEphemeris &eph, const Integer &body_index, const Float &epoch)
+__device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
+    const std::size_t &body_index,
+    const Float &epoch) const
 {
-    auto nintervals = eph.nintervals_at(body_index);
-    auto data_offset = eph.dataoffset_at(body_index);
-    auto pdeg = eph.pdeg_at(body_index);
+    auto nintervals = nintervals_at(body_index);
+    auto data_offset = dataoffset_at(body_index);
+    auto pdeg = pdeg_at(body_index);
 
     // data = [ ...[other data; (data_offset)], interval radius, ...[intervals; (nintervals)], ...[coefficients; (nintervals * (pdeg + 1))] ]
-    auto radius = eph.data_at(data_offset);
-    DeviceFloatArray intervals{/* data pointer */ eph.data.data + data_offset + 1, /* size */ (std::size_t)nintervals};
-    DeviceFloatArray coefficients{/* data pointer */ intervals.end(), /* size */ (std::size_t)nintervals * (pdeg + 1)};
+    auto radius = data_at(data_offset);
+    DeviceFloatArray intervals{
+        .data = data.data + data_offset + 1,
+        .n_vecs = (std::size_t)nintervals};
+    // TODO create dynamic device array where vector size does not have to be a compile-time constant
+    DeviceFloatArray coefficients{
+        .data = intervals.end(),
+        .n_vecs = (std::size_t)nintervals * (pdeg + 1)};
 
     std::size_t idx = (epoch - intervals.at(0)) / (2 * radius); // interval selection
-    Float s = (epoch - intervals.at(idx)) / radius - 1.0;       // normalized  time coordinate
+    Float s = (epoch - intervals.at(idx)) / radius - 1.;        // normalized  time coordinate
     // use clenshaw recurrence relation to efficiently calculate chebyshev polynomials
-    PositionVector position = {0.0};
-    PositionVector w1 = {0.0};
-    PositionVector w2 = {0.0};
+    PositionVector position{0.0};
+    PositionVector w1{0.0};
+    PositionVector w2{0.0};
     Float s2 = 2 * s;
-    for (auto i = pdeg; i > 0; --i)
+    // highestDegree = numIndexes - 1 = degree - 1 + 1 = pdeg - 1 + 1 = pdeg
+    for (auto degree = pdeg; degree > 0; --degree)
     {
         w2 = w1;
         w1 = position;
-        position = (w1 * s2 - w2) + coefficients.at(i * nintervals + idx);
+        position = (w1 * s2 - w2) + coefficients.at(get_2d_index(nintervals, degree, idx));
     }
-    return (position * s - w1) + coefficients.at(idx);
+    return (position * s - w1) + coefficients.at(/* get_2d_index(nintervals, 0, idx) = */ idx);
 }
 
-__device__ PositionVector read_position(const DeviceEphemeris &eph, const Float &epoch, const Integer &target, const Integer &center)
+__device__ PositionVector DeviceEphemeris::read_position(
+    const Float &epoch,
+    const Integer &target,
+    const Integer &center) const
 {
-    PositionVector position = {0.0};
+    PositionVector position{0.0};
     if (target == center)
     {
         return position;
@@ -180,21 +191,19 @@ __device__ PositionVector read_position(const DeviceEphemeris &eph, const Float 
     Integer t = target;
     while (t != center)
     {
-        auto body_index = eph.index_of_target(t);
+        std::size_t body_index = index_of_target(t);
         // ! We only have type 2 bodies for now.
-        position += interpolate_type_2_body_to_position(eph, body_index, epoch);
-        t = eph.center_at(body_index);
+        position += interpolate_type_2_body_to_position(body_index, epoch);
+        t = center_at(body_index);
     }
     return position;
 }
 
 __device__ PositionVector DeviceEphemeris::calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const
 {
-    auto cc = common_center(target, center_of_integration);
-    auto xt = read_position(*this, epoch, target, cc);
-    auto xc = read_position(*this, epoch, center_of_integration, cc);
-    xt -= xc;
-    return xt;
+    Integer cc = common_center(target, center_of_integration);
+    PositionVector xc = read_position(epoch, center_of_integration, cc);
+    return read_position(epoch, target, cc) - xc;
 }
 
 #pragma endregion

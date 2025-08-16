@@ -7,7 +7,6 @@
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/environment/constants.cuh"
 
-// TODO check two body and three body functions for possible mistakes
 __device__ inline VelocityVector two_body(const PositionVector &position_delta, const Float &gm)
 {
     return position_delta * -gm * position_delta.reciprocal_cubed_norm();
@@ -84,8 +83,7 @@ __device__ StateVector calculate_state_derivative(
             }
             else
             {
-                const Float gm = constants.gm_for(target);
-                velocity_delta += two_body(state_position, gm);
+                velocity_delta += two_body(state_position, constants.gm_for(target));
             }
         }
     }

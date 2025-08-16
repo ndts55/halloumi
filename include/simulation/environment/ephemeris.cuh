@@ -110,9 +110,9 @@ struct DeviceEphemeris
     }
 
     // Helper methods
-    __device__ inline Integer index_of_target(const Integer &target) const
+    __device__ inline std::size_t index_of_target(const Integer &target) const
     {
-        for (auto i = 0; i < n_bodies(); ++i)
+        for (std::size_t i = 0; i < n_bodies(); ++i)
         {
             if (target_at(i) == target)
             {
@@ -122,14 +122,15 @@ struct DeviceEphemeris
         return n_bodies();
     }
 
-    // TODO profile with and without inline
-    __device__ Integer common_center(Integer tc, Integer cc) const
+    __device__ Integer common_center(const Integer &target, const Integer &center) const
     {
-        if (tc == 0 || cc == 0)
+        if (target == 0 || center == 0)
         {
             return 0;
         }
 
+        Integer tc = target;
+        Integer cc = center;
         Integer tcnew, ccnew;
 
         while (tc != cc && tc != 0 && cc != 0)
@@ -137,11 +138,13 @@ struct DeviceEphemeris
             tcnew = center_at(index_of_target(tc));
             if (tcnew == cc)
             {
+                // target center is center of old center
                 return tcnew;
             }
             ccnew = center_at(index_of_target(cc));
             if (ccnew == tc)
             {
+                // center center is center of old target
                 return ccnew;
             }
             tc = tcnew;
@@ -158,6 +161,10 @@ struct DeviceEphemeris
     }
 
     __device__ PositionVector calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const;
+
+    __device__ PositionVector read_position(const Float &epoch, const Integer &target, const Integer &center) const;
+
+    __device__ PositionVector interpolate_type_2_body_to_position(const std::size_t &body_index, const Float &epoch) const;
 };
 
 struct Ephemeris
