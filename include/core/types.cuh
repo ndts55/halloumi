@@ -35,4 +35,6 @@ using DeviceBoolArray = DeviceArray1D<bool>;
 using DeviceStatesMatrix = DeviceArray2D<Float, STATE_DIM>;
 using DeviceDerivativesTensor = DeviceArray3D<Float, STATE_DIM, RKF78::NStages>;
 
+using CudaIndex = unsigned int;
+
 #pragma endregion

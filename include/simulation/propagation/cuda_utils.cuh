@@ -1,3 +1,4 @@
+#pragma once
 #include <cuda_runtime.h>
 #include <iostream>
 #include <cstdlib>
@@ -7,8 +8,6 @@
 #include "simulation/simulation.hpp"
 #include "simulation/tableau.cuh"
 #include "simulation/rkf_parameters.cuh"
-
-using CudaIndex = unsigned int;
 
 __device__ inline CudaIndex index_in_grid()
 {
