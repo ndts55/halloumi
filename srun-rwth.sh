@@ -4,7 +4,7 @@
 #SBATCH -N 1                	# Number of nodes
 #SBATCH -n 1			        # One Task actually
 #SBATCH --mem-per-cpu=4G    	# Memory allocated per CPU
-#SBATCH -t 10               	# Time allocated for the task
+#SBATCH -t 5                 	# Time allocated for the task
 #SBATCH -A p0024741
 #SBATCH --gres=gpu:hopper:1   	        # Desired GPU and their amount
 
@@ -24,7 +24,7 @@ echo "\n"
 start=$(date +%s)
 
 echo "Running simulation..."
-./run.sh
+./build/halloumi
 
 end=$(date +%s)
 
