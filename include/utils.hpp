@@ -13,17 +13,37 @@ void json_to_file(const nlohmann::json &json, const std::string &path);
 
 void print_json(const nlohmann::json &json);
 
-__device__ __host__ inline std::size_t get_2d_index(const std::size_t &number_of_vectors, const std::size_t &component_index, const std::size_t &vector_index)
+// __device__ __host__ inline std::size_t get_2d_index(const std::size_t &number_of_vectors, const std::size_t &component_index, const std::size_t &vector_index)
+// {
+//     // select component row, then index into it with vector index
+//     return component_index * number_of_vectors + vector_index;
+// }
+
+// Optimized for coalesced access when vec_index is thread index
+__device__ __host__ inline std::size_t get_2d_index_(
+    const std::size_t &n_vecs,
+    const std::size_t &vec_index,
+    const std::size_t &com_index)
 {
-    // select component row, then index into it with vector index
-    return component_index * number_of_vectors + vector_index;
+    return com_index * n_vecs + vec_index;
 }
 
+// template <std::size_t VEC_SIZE>
+// __device__ __host__ inline std::size_t get_3d_index(const std::size_t &number_of_vectors, const std::size_t &component_index, const std::size_t &matrix_index, const std::size_t &vector_index)
+// {
+//     // select stage matrix from which we select component row, then index into it with vector index
+//     return (matrix_index * VEC_SIZE + component_index) * number_of_vectors + vector_index; // = (matrix_index * number_of_vectors * VEC_SIZE) + (component_index * number_of_vectors) + vector_index;
+// }
+
+// Optimized for coalesced access when vec_index is thread index.
 template <std::size_t VEC_SIZE>
-__device__ __host__ inline std::size_t get_3d_index(const std::size_t &number_of_vectors, const std::size_t &component_index, const std::size_t &stage_index, const std::size_t &vector_index)
+__device__ __host__ inline std::size_t get_3d_index_(
+    const std::size_t &n_mats,
+    const std::size_t &mat_index,
+    const std::size_t &vec_index,
+    const std::size_t &com_index)
 {
-    // select stage matrix from which we select component row, then index into it with vector index
-    return (stage_index * VEC_SIZE + component_index) * number_of_vectors + vector_index; // = (stage_index * number_of_vectors * VEC_SIZE) + (component_index * number_of_vectors) + vector_index;
+    return (mat_index * VEC_SIZE + com_index) * n_mats + vec_index;
 }
 
 template <typename T>

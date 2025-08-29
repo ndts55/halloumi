@@ -4,7 +4,6 @@
 #include "simulation/simulation.hpp"
 #include "utils.hpp"
 #include "simulation/environment/ephemeris.cuh"
-#include "cuda/cuda_array.hpp"
 
 Simulation Simulation::from_json(const nlohmann::json &configuration)
 {
@@ -14,14 +13,14 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
     auto n_vecs = in_samples.size();
 
     // Mutable State
-    GlobalStatesMatrix states(n_vecs);
-    GlobalFloatArray epochs(n_vecs);
-    GlobalBoolArray terminated(n_vecs, false);
+    HostStatesMatrix states(n_vecs);
+    HostFloatArray epochs(n_vecs);
+    HostBoolArray terminated(n_vecs, false);
 
     // Immutable state that has to be calculated
     Float duration_in_days = configuration["simConfig"]["durationDays"];
-    GlobalFloatArray start_epochs(n_vecs);
-    GlobalFloatArray end_epochs(n_vecs);
+    HostFloatArray start_epochs(n_vecs);
+    HostFloatArray end_epochs(n_vecs);
 
     // Immutable expected state
     std::vector<StateVector> expected_states;
@@ -35,13 +34,12 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
         Float e = sample["epoch"];
         epochs.at(idx) = e;
         start_epochs.at(idx) = e;
-        // FIXME what is the correct way to add duration_in_days to epoch?
         end_epochs.at(idx) = e + duration_in_days;
-        auto cart = sample["stateCart"];
+        nlohmann::json cart = sample["stateCart"];
         for (auto dim = 0; dim < STATE_DIM; dim++)
         {
             // put each element of vec<6> in the correct position
-            states.at(dim, idx) = cart[dim];
+            states.at(idx, dim) = cart[dim];
         }
         idx += 1;
     }
@@ -50,10 +48,10 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
         std::move(states),
         std::move(epochs),
         std::move(terminated),
-        /* last_dts */ GlobalFloatArray(n_vecs, 0.0f),
-        /* next_dts */ GlobalFloatArray(n_vecs, 0.0f),
-        /* simulation_ended */ GlobalBoolArray(n_vecs, false),
-        /* backwards */ GlobalBoolArray(n_vecs, false)};
+        /* last_dts */ HostFloatArray(n_vecs, 0.0f),
+        /* next_dts */ HostFloatArray(n_vecs, 0.0f),
+        /* simulation_ended */ HostBoolArray(n_vecs, false),
+        /* backwards */ HostBoolArray(n_vecs, false)};
     auto sd = SamplesData{
         n_vecs,
         /* center_of_integration */ samples_json["centre"],
@@ -87,7 +85,7 @@ ExpectedPropagationState ExpectedPropagationState::from_json(const nlohmann::jso
         const auto state = sample["stateCart"];
         for (auto dim = 0; dim < STATE_DIM; ++dim)
         {
-            states.at(get_2d_index(n_vecs, dim, index)) = state[dim];
+            states.at(get_2d_index_(n_vecs, index, dim)) = state[dim];
         }
         index += 1;
     }

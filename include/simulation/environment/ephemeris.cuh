@@ -2,8 +2,8 @@
 #include <nlohmann/json.hpp>
 #include <cuda_runtime.h>
 #include "core/types.cuh"
-#include "cuda/cuda_array.hpp"
 #include "cuda/vec.cuh"
+#include "cuda/matrix.cuh"
 
 enum IntMembers
 {
@@ -33,63 +33,63 @@ struct DeviceEphemeris
 {
     // TODO use pointer types directly and store n_vecs only once
     DeviceFloatArray data; // ? is this really a 1d array?
-    DeviceArray2D<Integer, INTSIZE> integers;
-    DeviceArray2D<Float, REALSIZE> floats;
+    DeviceMatrix<Integer, INTSIZE> integers;
+    DeviceMatrix<Float, REALSIZE> floats;
 
     DeviceEphemeris() = default;
-    DeviceEphemeris(DeviceFloatArray &&d, DeviceArray2D<Integer, INTSIZE> &&i, DeviceArray2D<Float, REALSIZE> &&f)
-        : data(d), integers(i), floats(f) {}
+    DeviceEphemeris(DeviceFloatArray &&d, DeviceMatrix<Integer, INTSIZE> &&i, DeviceMatrix<Float, REALSIZE> &&f)
+        : data(std::move(d)), integers(std::move(i)), floats(std::move(f)) {}
 
     // Integers
     __device__ inline const Integer &frame_at(std::size_t idx) const
     {
-        return integers.at(FRAME, idx);
+        return integers.at(idx, FRAME);
     }
 
     __device__ inline const Integer &dtype_at(std::size_t idx) const
     {
-        return integers.at(DTYPE, idx);
+        return integers.at(idx, DTYPE);
     }
 
     __device__ inline const Integer &target_at(std::size_t idx) const
     {
-        return integers.at(TARGET, idx);
+        return integers.at(idx, TARGET);
     }
 
     __device__ inline const Integer &center_at(std::size_t idx) const
     {
-        return integers.at(CENTER, idx);
+        return integers.at(idx, CENTER);
     }
 
     __device__ inline const Integer &nintervals_at(std::size_t idx) const
     {
-        return integers.at(NINTERVALS, idx);
+        return integers.at(idx, NINTERVALS);
     }
 
     __device__ inline const Integer &pdeg_at(std::size_t idx) const
     {
-        return integers.at(PDEG, idx);
+        return integers.at(idx, PDEG);
     }
 
     __device__ inline const Integer &dataoffset_at(std::size_t idx) const
     {
-        return integers.at(DATAOFFSET, idx);
+        return integers.at(idx, DATAOFFSET);
     }
 
     __device__ inline const Integer &datasize_at(std::size_t idx) const
     {
-        return integers.at(DATASIZE, idx);
+        return integers.at(idx, DATASIZE);
     }
 
     // Floats
     __device__ inline const Float &initial_epoch_at(std::size_t idx) const
     {
-        return floats.at(INITIALEPOCH, idx);
+        return floats.at(idx, INITIALEPOCH);
     }
 
     __device__ inline const Float &final_epoch_at(std::size_t idx) const
     {
-        return floats.at(FINALEPOCH, idx);
+        return floats.at(idx, FINALEPOCH);
     }
 
     // Data
@@ -106,19 +106,34 @@ struct DeviceEphemeris
 
     __device__ inline std::size_t size() const
     {
-        return data.n_vecs;
+        return data.n_elements;
     }
 
     // Helper methods
     __device__ inline std::size_t index_of_target(const Integer &target) const
     {
+#ifdef __CUDA_ARCH__
+        // if (threadIdx.x == 0 && blockIdx.x == 0)
+        // {
+        //     printf("====\n");
+        //     printf("size is %llu", n_bodies());
+        //     // FIXME the sizes are different, I get 14 and CUDAjectory getts 4
+        //     for (std::size_t i = 0; i < n_bodies(); ++i)
+        //     {
+        //         auto ti = target_at(i);
+        //         printf("    Target %llu at %llu\n", ti, i);
+        //     }
+        // }
+#endif
         for (std::size_t i = 0; i < n_bodies(); ++i)
         {
-            if (target_at(i) == target)
+            auto ti = target_at(i);
+            if (ti == target)
             {
                 return i;
             }
         }
+
         return n_bodies();
     }
 
@@ -169,9 +184,9 @@ struct DeviceEphemeris
 
 struct Ephemeris
 {
-    GlobalFloatArray data;
-    CudaArray2D<Integer, INTSIZE> integers;
-    CudaArray2D<Float, REALSIZE> floats;
+    HostFloatArray data;
+    HostMatrix<Integer, INTSIZE> integers;
+    HostMatrix<Float, REALSIZE> floats;
 
     static Ephemeris from_brie(const nlohmann::json &json);
 

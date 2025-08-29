@@ -3,9 +3,9 @@
 #include "cuda/vec.cuh"
 #include "core/types.cuh"
 #include "simulation/tableau.cuh"
-#include "cuda/device_array.cuh"
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/environment/constants.cuh"
+#include "simulation/rkf_parameters.cuh"
 
 __device__ inline VelocityVector two_body(const PositionVector &position_delta, const Float &gm)
 {
@@ -48,63 +48,45 @@ __device__ StateVector calculate_current_state(
     return state;
 }
 
-__device__ StateVector calculate_state_derivative(
+// Calculates the acceleration in the current position using point gravity
+__device__ VelocityVector calculate_velocity_derivative(
     // Primary inputes
-    const StateVector &state,
-    const Float &t,
+    const PositionVector &current_position,
+    const Float &epoch,
     // Physics configs
     const Integer &center_of_integration,
     const DeviceIntegerArray &active_bodies,
     const DeviceConstants &constants,
     const DeviceEphemeris &ephemeris)
 {
-    const PositionVector state_position = state.slice<POSITION_OFFSET, POSITION_DIM>();
-
-    // velocity delta, i.e., acceleration
-    VelocityVector velocity_delta{0.0};
+    // velocity derivative, i.e., acceleration
+    VelocityVector velocity_derivative{0.0};
     if (center_of_integration == 0)
     {
-        for (auto i = 0; i < active_bodies.n_vecs; ++i)
+        for (std::size_t i = 0; i < active_bodies.n_elements; ++i)
         {
             const Integer target = active_bodies.at(i);
-            const PositionVector body_position = ephemeris.calculate_position(t, target, center_of_integration);
-            velocity_delta += three_body_barycentric(state_position, body_position, constants.gm_for(target));
+            const PositionVector body_position = ephemeris.calculate_position(epoch, target, center_of_integration);
+            velocity_derivative += three_body_barycentric(current_position, body_position, constants.gm_for(target));
         }
     }
     else
     {
-        for (auto i = 0; i < active_bodies.n_vecs; ++i)
+        for (std::size_t i = 0; i < active_bodies.n_elements; ++i)
         {
             const Integer target = active_bodies.at(i);
             if (target != center_of_integration)
             {
-                const PositionVector body_position = ephemeris.calculate_position(t, target, center_of_integration);
-                velocity_delta += three_body_non_barycentric(state_position, body_position, constants.gm_for(target));
+                const PositionVector body_position = ephemeris.calculate_position(epoch, target, center_of_integration);
+                velocity_derivative += three_body_non_barycentric(current_position, body_position, constants.gm_for(target));
             }
             else
             {
-                velocity_delta += two_body(state_position, constants.gm_for(target));
+                velocity_derivative += two_body(current_position, constants.gm_for(target));
             }
         }
     }
-    // Velocity of previous state becomes position delta
-    return state.slice<VELOCITY_OFFSET, VELOCITY_DIM>().append(velocity_delta);
-}
-
-__device__ StateVector calculate_componentwise_truncation_error(const DeviceDerivativesTensor &d_states, const CudaIndex &index)
-{
-    StateVector sum{0.0};
-    for (auto stage = 0; stage < RKF78::NStages; ++stage)
-    {
-        sum += d_states.vector_at(stage, index) * RKF78::embedded_weight(stage);
-    }
-
-    return sum;
-}
-
-__device__ Float clamp_dt(const Float &dt)
-{
-    return min(device_rkf_parameters.max_dt_scale, max(device_rkf_parameters.min_dt_scale, dt));
+    return velocity_derivative;
 }
 
 __device__ StateVector calculate_final_state_derivative(const DeviceDerivativesTensor d_states, const CudaIndex &index)

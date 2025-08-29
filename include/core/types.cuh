@@ -1,8 +1,9 @@
 #pragma once
 #include "cuda/vec.cuh"
-#include "cuda/device_array.cuh"
 #include "simulation/tableau.cuh"
-#include "cuda/cuda_array.hpp"
+#include "cuda/array.cuh"
+#include "cuda/matrix.cuh"
+#include "cuda/tensor.cuh"
 
 #pragma region State Vector Dimensions
 
@@ -18,22 +19,23 @@ constexpr std::size_t VELOCITY_OFFSET = POSITION_DIM + POSITION_OFFSET;
 
 using Integer = long int;
 using Float = double;
+using Bool = uint8_t;
 
 using StateVector = Vec<Float, STATE_DIM>;
 using PositionVector = Vec<Float, POSITION_DIM>;
 using VelocityVector = Vec<Float, VELOCITY_DIM>;
 
-using GlobalFloatArray = CudaArray1D<Float>;
-using GlobalIntegerArray = CudaArray1D<Integer>;
-using GlobalBoolArray = CudaArray1D<bool>;
-using GlobalStatesMatrix = CudaArray2D<Float, STATE_DIM>;
-using GlobalDerivativesTensor = CudaArray3D<Float, STATE_DIM, RKF78::NStages>;
+using HostFloatArray = HostArray<Float>;
+using HostIntegerArray = HostArray<Integer>;
+using HostBoolArray = HostArray<Bool>;
+using HostStatesMatrix = HostMatrix<Float, STATE_DIM>;
+using HostDerivativesTensor = HostTensor<Float, RKF78::NStages, STATE_DIM>;
 
-using DeviceFloatArray = DeviceArray1D<Float>;
-using DeviceIntegerArray = DeviceArray1D<Integer>;
-using DeviceBoolArray = DeviceArray1D<bool>;
-using DeviceStatesMatrix = DeviceArray2D<Float, STATE_DIM>;
-using DeviceDerivativesTensor = DeviceArray3D<Float, STATE_DIM, RKF78::NStages>;
+using DeviceFloatArray = DeviceArray<Float>;
+using DeviceIntegerArray = DeviceArray<Integer>;
+using DeviceBoolArray = DeviceArray<Bool>;
+using DeviceStatesMatrix = DeviceMatrix<Float, STATE_DIM>;
+using DeviceDerivativesTensor = DeviceTensor<Float, RKF78::NStages, STATE_DIM>;
 
 using CudaIndex = unsigned int;
 

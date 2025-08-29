@@ -35,7 +35,7 @@ struct Errors
         {
             for (auto dim = POSITION_OFFSET; dim < POSITION_OFFSET + POSITION_DIM; ++dim)
             {
-                position_error_components[vidx] += state_error_components[get_2d_index(simulation.n_samples(), dim, vidx)];
+                position_error_components[vidx] += state_error_components[get_2d_index_(simulation.n_samples(), vidx, dim)];
             }
             position_error_components[vidx] = std::sqrt(position_error_components[vidx]);
         }
@@ -46,7 +46,7 @@ struct Errors
         {
             for (auto dim = VELOCITY_OFFSET; dim < VELOCITY_OFFSET + VELOCITY_DIM; ++dim)
             {
-                velocity_error_components[vidx] += state_error_components[get_2d_index(simulation.n_samples(), dim, vidx)];
+                velocity_error_components[vidx] += state_error_components[get_2d_index_(simulation.n_samples(), vidx, dim)];
             }
             velocity_error_components[vidx] = std::sqrt(velocity_error_components[vidx]);
         }
@@ -115,7 +115,6 @@ int main()
     auto configuration = json_from_file(file);
     auto simulation = Simulation::from_json(configuration);
     std::cout << "Loaded simulation with " << simulation.n_samples() << " samples." << std::endl;
-    std::cout << "Max Steps: " << simulation.rkf_parameters.max_steps << std::endl;
 
     std::cout << "Propagating" << std::endl;
     propagate(simulation);

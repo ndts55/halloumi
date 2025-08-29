@@ -26,8 +26,8 @@ __global__ void prepare_simulation_run(
     DeviceBoolArray backwards,
     DeviceFloatArray next_dts)
 {
-    const auto i = index_in_grid();
-    if (i >= termination_flags.n_vecs)
+    const CudaIndex i = index_in_grid();
+    if (i >= termination_flags.n_elements)
     {
         return;
     }
@@ -38,7 +38,7 @@ __global__ void prepare_simulation_run(
         simulation_ended.at(i) = false;
     }
 
-    auto span = end_epochs.at(i) - start_epochs.at(i);
+    const Float span = end_epochs.at(i) - start_epochs.at(i);
     next_dts.at(i) = copysign(device_rkf_parameters.initial_time_step, span);
     backwards.at(i) = span < 0;
 }
@@ -58,25 +58,26 @@ __global__ void evaluate_ode(
     const DeviceConstants constants,
     const DeviceEphemeris ephemeris)
 {
-    const auto index = index_in_grid();
-    if (index >= termination_flags.n_vecs || termination_flags.at(index))
+    const CudaIndex index = index_in_grid();
+    if (index >= termination_flags.n_elements || termination_flags.at(index))
     {
         return;
     }
 
-    const auto dt = next_dts.at(index);
-    const auto epoch = epochs.at(index);
+    const Float dt = next_dts.at(index);
+    const Float epoch = epochs.at(index);
 
     { // ! Optimization for stage = 0;
         // Simply read out the state from states
-        StateVector current_state = states.vector_at(index);
-        auto state_derivative = calculate_state_derivative(
-            current_state,
-            epoch,
+        const StateVector current_state = states.vector_at(index);
+        const VelocityVector velocity_derivative = calculate_velocity_derivative(
+            current_state.slice<POSITION_OFFSET, POSITION_DIM>(),
+            epoch, // this is where the optimization happens
             center_of_integration,
             active_bodies,
             constants,
             ephemeris);
+        const StateVector state_derivative = current_state.slice<VELOCITY_OFFSET, VELOCITY_DIM>().append(velocity_derivative);
         d_states.set_vector_at(0, index, state_derivative);
     }
 
@@ -84,13 +85,15 @@ __global__ void evaluate_ode(
     for (auto stage = 1; stage < RKF78::NStages; ++stage)
     {
         const StateVector current_state = calculate_current_state(states, d_states, index, stage, dt);
-        StateVector state_derivative = calculate_state_derivative(
-            current_state,
-            /* t */ epoch + RKF78::node(stage) * dt,
+        const PositionVector current_position = current_state.slice<POSITION_OFFSET, POSITION_DIM>();
+        const VelocityVector velocity_derivative = calculate_velocity_derivative(
+            current_position,
+            /* epoch */ epoch + RKF78::node(stage) * dt,
             center_of_integration,
             active_bodies,
             constants,
             ephemeris);
+        const StateVector state_derivative = current_state.slice<VELOCITY_OFFSET, VELOCITY_DIM>().append(velocity_derivative);
         d_states.set_vector_at(stage, index, state_derivative);
     }
 }
@@ -107,15 +110,21 @@ __global__ void advance_step(
     DeviceBoolArray termination_flags,
     DeviceFloatArray epochs)
 {
-    const auto index = index_in_grid();
+    const CudaIndex index = index_in_grid();
 
     if (index >= states.n_vecs || termination_flags.at(index))
     {
         return;
     }
 
-    const auto dt = next_dts.at(index);
-    auto criterion = TimeStepCriterion::from_dts(dt, dt * device_rkf_parameters.max_dt_scale);
+    const Float dt = next_dts.at(index);
+    TimeStepCriterion criterion{};
+    criterion.current_dt = dt;
+    criterion.next_dt = device_rkf_parameters.max_dt_scale * dt;
+    if (index == 0)
+    {
+        printf("0: next dt: %.15e\tnow dt: %.15e\n", criterion.next_dt, criterion.current_dt);
+    }
 
     StateVector current_state_derivative = calculate_final_state_derivative(d_states, index);
     StateVector current_state = states.vector_at(index);
@@ -129,15 +138,28 @@ __global__ void advance_step(
         d_states,
         index);
 
+    // FIXME dt now is wrong after this call
+
+    if (index == 0)
+    {
+        printf("1: next dt: %.15e\tnow dt: %.15e\n", criterion.next_dt, criterion.current_dt);
+    }
+
     // check for end of simulation
     if (!criterion.terminate && !criterion.reject)
     {
+        // FIXME the code that is actually executed does not do this! It looks at some events
         criterion.evaluate_simulation_end(
             criterion.current_dt,
             criterion.next_dt,
             epochs.at(index),
             start_epochs.at(index),
             end_epochs.at(index));
+    }
+
+    if (index == 0)
+    {
+        printf("2: next dt: %.15e\tnow dt: %.15e\n", criterion.next_dt, criterion.current_dt);
     }
 
     if (!criterion.terminate && !criterion.refine)
@@ -149,11 +171,20 @@ __global__ void advance_step(
     // Set termination flag, we already know what it ought to be
     termination_flags.at(index) = criterion.terminate;
 
+    if (index == 0)
+    {
+        printf("3: next dt: %.15e\tnow dt: %.15e\n", criterion.next_dt, criterion.current_dt);
+    }
+
     if (criterion.reject)
     {
         // reject the current time step
         // results are discarded and re-evaluated with shorter dt
         next_dts.at(index) = criterion.current_dt;
+        if (index == 0)
+        {
+            printf("REJ\tnext dt: %.15e\n", criterion.current_dt);
+        }
     }
     else
     {
@@ -165,19 +196,26 @@ __global__ void advance_step(
         if (!criterion.terminate)
         {
             next_dts.at(index) = criterion.next_dt;
+            if (index == 0)
+            {
+                printf("ACC\tnext dt: %.15e\n", criterion.next_dt);
+            }
+        }
+        else if (index == 0)
+        {
+            printf("TER\tnext dt: %.15e\n", next_dts.at(0));
         }
     }
 }
 
-/* We assume that the length of termination_flags is less than or equal to the number of threads in the grid.
- */
+// We assume that the length of termination_flags is less than or equal to the number of threads in the grid.
 __global__ void reduce_bool_with_and(const DeviceBoolArray termination_flags, DeviceBoolArray result_buffer)
 {
     extern __shared__ bool block_buffer[];
 
-    const auto local_index = index_in_block();
-    const auto global_index = index_in_grid();
-    if (global_index <= termination_flags.n_vecs)
+    const CudaIndex local_index = index_in_block();
+    const CudaIndex global_index = index_in_grid();
+    if (global_index <= termination_flags.n_elements)
     {
         block_buffer[local_index] = termination_flags.at(global_index);
     }
@@ -209,7 +247,7 @@ __host__ bool all_terminated(
     std::size_t first_grid_size,
     std::size_t block_size)
 {
-    size_t shared_mem_size = block_size * sizeof(bool);
+    size_t shared_mem_size = block_size * sizeof(Bool);
 
     reduce_bool_with_and<<<first_grid_size, block_size, shared_mem_size>>>(termination_flags, reduction_buffer);
     check_cuda_error(cudaDeviceSynchronize(), "first reduction pass on GPU");
@@ -223,16 +261,16 @@ __host__ bool all_terminated(
 
     bool result;
     check_cuda_error(
-        cudaMemcpy(&result, reduction_buffer.data, sizeof(bool), cudaMemcpyDeviceToHost),
+        cudaMemcpy(&result, reduction_buffer.data, sizeof(Bool), cudaMemcpyDeviceToHost),
         "Error copying reduction result from device to host");
 
-    return result;
+    return (bool)result;
 }
 
-void dump_d_states(const GlobalDerivativesTensor &d_states, const std::string &filename = "d_states.json")
+void dump_d_states(const HostDerivativesTensor &d_states, const std::string &filename = "d_states.json")
 {
     auto array = nlohmann::json::array();
-    for (auto index = 0; index < d_states.n_vecs(); ++index)
+    for (auto index = 0; index < d_states.n_mats(); ++index)
     {
         auto states = nlohmann::json::array();
         for (auto stage = 0; stage < RKF78::NStages; ++stage)
@@ -240,7 +278,7 @@ void dump_d_states(const GlobalDerivativesTensor &d_states, const std::string &f
             auto state = nlohmann::json::array();
             for (auto dim = 0; dim < STATE_DIM; ++dim)
             {
-                state.push_back(d_states.at(dim, stage, index));
+                state.push_back(d_states.at(stage, index, dim));
             }
             states.push_back(state);
         }
@@ -253,19 +291,60 @@ void dump_d_states(const GlobalDerivativesTensor &d_states, const std::string &f
     json_to_file(array, filename);
 }
 
+void dump_states(const HostStatesMatrix &states, const std::string &filename = "states.json")
+{
+    auto array = nlohmann::json::array();
+    for (auto index = 0; index < states.n_vecs(); ++index)
+    {
+        nlohmann::json state = nlohmann::json::array();
+        for (auto dim = 0; dim < STATE_DIM; ++dim)
+        {
+            state.push_back(states.at(index, dim));
+        }
+        array.push_back(state);
+    }
+    json_to_file(array, filename);
+}
+
+template <typename T>
+void dump_array(const HostArray<T> &array, const std::string &filename)
+{
+    auto json_array = nlohmann::json::array();
+    for (std::size_t i = 0; i < array.size(); ++i)
+    {
+        json_array.push_back(array.at(i));
+    }
+    json_to_file(json_array, filename);
+}
+
+__global__ void ephemeris_test_kernel(DeviceEphemeris ephemeris)
+{
+    if (index_in_grid() == 0)
+    {
+        Float test_epoch = 9617.0;
+        PositionVector earth_pos = ephemeris.calculate_position(test_epoch, 399, 0); // Earth relative to SSB
+        printf("Earth position at epoch %.15e: [%.15e, %.15e, %.15e]\n",
+               test_epoch, earth_pos[0], earth_pos[1], earth_pos[2]);
+        PositionVector expected_pos{-2.785302382150888e+07, 1.323128003139767e+08, 5.739756479216209e+07};
+        PositionVector diff = expected_pos - earth_pos;
+        printf("Expected position: [%.15e, %.15e, %.15e]\n", expected_pos[0], expected_pos[1], expected_pos[2]);
+        printf("Difference: [%.15e, %.15e, %.15e]\n", diff[0], diff[1], diff[2]);
+    }
+}
+
 __host__ void propagate(Simulation &simulation)
 {
-    prepare_device_memory(simulation);
     // figure out grid size and block size
     auto n = simulation.n_samples();
     auto bs = block_size_from_env();
     auto gs = grid_size(bs, n);
 
+    sync_to_device(simulation);
     // set up bool reduction buffer for termination flag kernel
-    GlobalBoolArray host_reduction_buffer(gs, false); // One entry per block
-    check_cuda_error(host_reduction_buffer.prefetch_to_device());
-    GlobalDerivativesTensor host_d_states(n, 0.0);
-    check_cuda_error(host_d_states.prefetch_to_device());
+    HostBoolArray host_reduction_buffer(gs, false); // One entry per block
+    check_cuda_error(host_reduction_buffer.copy_to_device());
+    HostDerivativesTensor host_d_states(n, 0.0);
+    check_cuda_error(host_d_states.copy_to_device());
     check_cuda_error(cudaDeviceSynchronize());
 
     std::cout << "Preparing arrays" << std::endl;
@@ -350,11 +429,14 @@ __host__ void propagate(Simulation &simulation)
     }
 
     sync_to_host(simulation);
-#ifndef NDEBUG
-    host_d_states.prefetch_to_host();
-    check_cuda_error(cudaDeviceSynchronize());
-    dump_d_states(host_d_states);
-#endif
+
+    // std::cout << "Dumping d_states to file" << std::endl;
+    // check_cuda_error(host_d_states.copy_to_host());
+    // dump_d_states(host_d_states);
+    // std::cout << "Dumping states to file" << std::endl;
+    // dump_states(simulation.propagation_state.states);
+    std::cout << "Dumping next_dts" << std::endl;
+    dump_array(simulation.propagation_state.next_dts, "next_dts.json");
 
     simulation.propagated = true;
 }

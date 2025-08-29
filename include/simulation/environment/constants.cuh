@@ -1,8 +1,6 @@
 #pragma once
 #include <nlohmann/json.hpp>
 #include "core/types.cuh"
-#include "cuda/cuda_array.hpp"
-#include "cuda/device_array.cuh"
 #include <cuda_runtime.h>
 
 // ? How are body and universe constants accessed
@@ -17,17 +15,21 @@ enum BodyConstants
 namespace celestial_constants
 {
     constexpr Integer SUN_ID = 10;
-    constexpr Integer MOON_ID = 301;
     constexpr Integer EARTH_ID = 399;
+    constexpr Integer MOON_ID = 301;
+    // constexpr Integer EARTH_BARYCENTER_ID = 3;
 
-    constexpr std::array<Integer, 3> BODY_IDS = {SUN_ID, MOON_ID, EARTH_ID};
+    constexpr std::size_t BODY_COUNT = 3;
+
+    constexpr std::array<Integer, BODY_COUNT> BODY_IDS = {SUN_ID, EARTH_ID, MOON_ID};
 
     constexpr Float SUN_GM = 1.3271244004193938E+11;
-    constexpr Float MOON_GM = 4.9028000661637961E+03;
     constexpr Float EARTH_GM = 3.9860043543609598E+05;
+    constexpr Float MOON_GM = 4.9028000661637961E+03;
+    // constexpr Float EARTH_BARYCENTER_GM = ? ;
 
-    constexpr std::array<std::array<Float, 3>, NUM_BODY_CONSTANTS> BODY_CONSTANTS = {{SUN_GM, MOON_GM, EARTH_GM}};
-    constexpr std::array<Float, 3> BODY_GMS = {SUN_GM, MOON_GM, EARTH_GM};
+    constexpr std::array<Float, BODY_COUNT> BODY_GMS = {SUN_GM, EARTH_GM, MOON_GM};
+    constexpr std::array<std::array<Float, BODY_COUNT>, NUM_BODY_CONSTANTS> BODY_CONSTANTS = {BODY_GMS};
 
     constexpr Float SUN_RADIUS = 696342.0;
     constexpr Float MOON_RADIUS = 1737.5;
@@ -49,7 +51,7 @@ public:
 
     __device__ inline std::size_t index_of(Integer body_id) const
     {
-        for (std::size_t i = 0; i < body_ids.n_vecs; ++i)
+        for (std::size_t i = 0; i < body_ids.n_elements; ++i)
         {
             if (body_ids.at(i) == body_id)
             {
@@ -67,8 +69,8 @@ public:
 
 struct Constants
 {
-    GlobalIntegerArray body_ids{celestial_constants::BODY_IDS};
-    GlobalFloatArray gms{celestial_constants::BODY_GMS};
+    HostIntegerArray body_ids{celestial_constants::BODY_IDS};
+    HostFloatArray gms{celestial_constants::BODY_GMS};
 
     DeviceConstants get() const
     {

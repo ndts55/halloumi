@@ -1,23 +1,22 @@
 #pragma once
 #include <nlohmann/json.hpp>
 #include "core/types.cuh"
+#include "simulation/rkf_parameters.cuh"
+#include "simulation/environment/constants.cuh"
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/environment/constants.cuh"
-#include "simulation/rkf_parameters.cuh"
-#include "cuda/cuda_array.hpp"
-#include "simulation/environment/constants.cuh"
 
-using ActiveBodies = GlobalIntegerArray;
+using ActiveBodies = HostIntegerArray;
 
 struct PropagationState
 {
-    GlobalStatesMatrix states;
-    GlobalFloatArray epochs;
-    GlobalBoolArray terminated;
-    GlobalFloatArray last_dts;
-    GlobalFloatArray next_dts;
-    GlobalBoolArray simulation_ended;
-    GlobalBoolArray backwards;
+    HostStatesMatrix states;
+    HostFloatArray epochs;
+    HostBoolArray terminated;
+    HostFloatArray last_dts;
+    HostFloatArray next_dts;
+    HostBoolArray simulation_ended;
+    HostBoolArray backwards;
 };
 
 struct SamplesData
@@ -25,8 +24,8 @@ struct SamplesData
     std::size_t n_vecs;
     Integer center_of_integration;
     Float duration_in_days;
-    GlobalFloatArray end_epochs;
-    GlobalFloatArray start_epochs;
+    HostFloatArray end_epochs;
+    HostFloatArray start_epochs;
 };
 
 struct ExpectedPropagationState
@@ -50,15 +49,15 @@ struct Simulation
 {
     PropagationState propagation_state;
 
-    const SamplesData samples_data;
-    const Ephemeris ephemeris;
-    const RKFParameters rkf_parameters;
+    SamplesData samples_data;
+    Ephemeris ephemeris;
+    RKFParameters rkf_parameters;
 
-    const Constants constants{};
-    const ActiveBodies active_bodies{celestial_constants::BODY_IDS};
+    Constants constants{};
+    ActiveBodies active_bodies{celestial_constants::BODY_IDS};
 
-    const ExpectedPropagationState expected_propagation_state;
-    const Tolerances tolerances;
+    ExpectedPropagationState expected_propagation_state;
+    Tolerances tolerances;
 
     bool propagated = false;
 

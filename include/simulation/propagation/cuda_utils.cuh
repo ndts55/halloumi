@@ -45,59 +45,59 @@ void check_cuda_error(cudaError_t error, const std::string &message = "CUDA erro
 
 #pragma region Sync to Device
 
-void prefetch_rkf_parameters(const RKFParameters &rkf_parameters)
+void copy_rkf_parameters_to_device(const RKFParameters &rkf_parameters)
 {
     check_cuda_error(initialize_rkf_parameters_on_device(rkf_parameters),
                      "Failed to copy RKF parameters to device");
 }
 
-void prefetch_ephemeris(const Ephemeris &ephemeris)
+void copy_ephemeris_to_device(Ephemeris &ephemeris)
 {
-    check_cuda_error(ephemeris.data.prefetch_to_device());
-    check_cuda_error(ephemeris.integers.prefetch_to_device());
-    check_cuda_error(ephemeris.floats.prefetch_to_device());
+    check_cuda_error(ephemeris.data.copy_to_device());
+    check_cuda_error(ephemeris.integers.copy_to_device());
+    check_cuda_error(ephemeris.floats.copy_to_device());
 }
 
-void prefetch_propagation_state(const PropagationState &propagation_state)
+void copy_propagation_state_to_device(PropagationState &propagation_state)
 {
-    check_cuda_error(propagation_state.states.prefetch_to_device());
-    check_cuda_error(propagation_state.epochs.prefetch_to_device());
-    check_cuda_error(propagation_state.terminated.prefetch_to_device());
-    check_cuda_error(propagation_state.last_dts.prefetch_to_device());
-    check_cuda_error(propagation_state.next_dts.prefetch_to_device());
-    check_cuda_error(propagation_state.simulation_ended.prefetch_to_device());
-    check_cuda_error(propagation_state.backwards.prefetch_to_device());
+    check_cuda_error(propagation_state.states.copy_to_device());
+    check_cuda_error(propagation_state.epochs.copy_to_device());
+    check_cuda_error(propagation_state.terminated.copy_to_device());
+    check_cuda_error(propagation_state.last_dts.copy_to_device());
+    check_cuda_error(propagation_state.next_dts.copy_to_device());
+    check_cuda_error(propagation_state.simulation_ended.copy_to_device());
+    check_cuda_error(propagation_state.backwards.copy_to_device());
 }
-void prefetch_samples_data(const SamplesData &samples_data)
+void copy_samples_data_to_device(SamplesData &samples_data)
 {
-    check_cuda_error(samples_data.end_epochs.prefetch_to_device());
-    check_cuda_error(samples_data.start_epochs.prefetch_to_device());
-}
-
-void prefetch_constants(const Constants &constants)
-{
-    check_cuda_error(constants.body_ids.prefetch_to_device());
-    check_cuda_error(constants.gms.prefetch_to_device());
+    check_cuda_error(samples_data.end_epochs.copy_to_device());
+    check_cuda_error(samples_data.start_epochs.copy_to_device());
 }
 
-void prefetch_active_bodies(const ActiveBodies &active_bodies)
+void copy_constants_to_device(Constants &constants)
 {
-    check_cuda_error(active_bodies.prefetch_to_device());
+    check_cuda_error(constants.body_ids.copy_to_device());
+    check_cuda_error(constants.gms.copy_to_device());
 }
 
-void prepare_device_memory(const Simulation &simulation)
+void copy_active_bodies_to_device(ActiveBodies &active_bodies)
+{
+    check_cuda_error(active_bodies.copy_to_device());
+}
+
+void sync_to_device(Simulation &simulation)
 {
     std::cout << "Preparing device memory for simulation..." << std::endl;
 
-    prefetch_rkf_parameters(simulation.rkf_parameters);
-    prefetch_ephemeris(simulation.ephemeris);
-    prefetch_propagation_state(simulation.propagation_state);
-    prefetch_samples_data(simulation.samples_data);
+    copy_rkf_parameters_to_device(simulation.rkf_parameters);
+    copy_ephemeris_to_device(simulation.ephemeris);
+    copy_propagation_state_to_device(simulation.propagation_state);
+    copy_samples_data_to_device(simulation.samples_data);
     check_cuda_error(RKF78::initialize_device_tableau(), "Error initializing RKF78 tableau");
-    prefetch_constants(simulation.constants);
-    prefetch_active_bodies(simulation.active_bodies);
+    copy_constants_to_device(simulation.constants);
+    copy_active_bodies_to_device(simulation.active_bodies);
 
-    check_cuda_error(cudaDeviceSynchronize(), "Error synchronizing after prefetching");
+    check_cuda_error(cudaDeviceSynchronize(), "Error synchronizing after copying");
     std::cout << "Successfully set up device" << std::endl;
 }
 
@@ -105,17 +105,17 @@ void prepare_device_memory(const Simulation &simulation)
 
 #pragma region Sync to Host
 
-void sync_to_host(const Simulation &simulation)
+void sync_to_host(Simulation &simulation)
 {
     std::cout << "Syncing to host" << std::endl;
 
-    check_cuda_error(simulation.propagation_state.states.prefetch_to_host());
-    check_cuda_error(simulation.propagation_state.epochs.prefetch_to_host());
-    check_cuda_error(simulation.propagation_state.terminated.prefetch_to_host());
-    check_cuda_error(simulation.propagation_state.last_dts.prefetch_to_host());
-    check_cuda_error(simulation.propagation_state.next_dts.prefetch_to_host());
-    check_cuda_error(simulation.propagation_state.simulation_ended.prefetch_to_host());
-    check_cuda_error(simulation.propagation_state.backwards.prefetch_to_host());
+    check_cuda_error(simulation.propagation_state.states.copy_to_host());
+    check_cuda_error(simulation.propagation_state.epochs.copy_to_host());
+    check_cuda_error(simulation.propagation_state.terminated.copy_to_host());
+    check_cuda_error(simulation.propagation_state.last_dts.copy_to_host());
+    check_cuda_error(simulation.propagation_state.next_dts.copy_to_host());
+    check_cuda_error(simulation.propagation_state.simulation_ended.copy_to_host());
+    check_cuda_error(simulation.propagation_state.backwards.copy_to_host());
 
     check_cuda_error(cudaDeviceSynchronize(), "Error synchronizing to host");
     std::cout << "Successfully synced to host" << std::endl;
