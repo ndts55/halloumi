@@ -1,7 +1,7 @@
 #pragma once
 #include <cuda_runtime.h>
 #include <vector>
-#include "cuda/cuda_ptr.hpp"
+#include "cuda/cuda_ptr.cuh"
 
 template <typename T>
 cudaError_t copy_to_device_(std::vector<T> &host_data, CudaPtr<T[]> &device_data)

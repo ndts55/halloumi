@@ -121,10 +121,6 @@ __global__ void advance_step(
     TimeStepCriterion criterion{};
     criterion.current_dt = dt;
     criterion.next_dt = device_rkf_parameters.max_dt_scale * dt;
-    // if (index == 0)
-    // {
-    //     printf("0: next dt: %.15e\tnow dt: %.15e\n", criterion.next_dt, criterion.current_dt);
-    // }
 
     StateVector current_state_derivative = calculate_final_state_derivative(d_states, index);
     StateVector current_state = states.vector_at(index);
@@ -137,13 +133,7 @@ __global__ void advance_step(
         next_state,
         d_states,
         index);
-
     // FIXME dt now is wrong after this call
-
-    // if (index == 0)
-    // {
-    //     printf("1: next dt: %.15e\tnow dt: %.15e\n", criterion.next_dt, criterion.current_dt);
-    // }
 
     // check for end of simulation
     if (!criterion.terminate && !criterion.reject)
@@ -157,11 +147,6 @@ __global__ void advance_step(
             end_epochs.at(index));
     }
 
-    // if (index == 0)
-    // {
-    //     printf("2: next dt: %.15e\tnow dt: %.15e\n", criterion.next_dt, criterion.current_dt);
-    // }
-
     if (!criterion.terminate && !criterion.refine)
     {
         // if next time step would be too small just terminate the sample
@@ -171,20 +156,11 @@ __global__ void advance_step(
     // Set termination flag, we already know what it ought to be
     termination_flags.at(index) = criterion.terminate;
 
-    // if (index == 0)
-    // {
-    //     printf("3: next dt: %.15e\tnow dt: %.15e\n", criterion.next_dt, criterion.current_dt);
-    // }
-
     if (criterion.reject)
     {
         // reject the current time step
         // results are discarded and re-evaluated with shorter dt
         next_dts.at(index) = criterion.current_dt;
-        // if (index == 0)
-        // {
-        //     printf("REJ\tnext dt: %.15e\n", criterion.current_dt);
-        // }
     }
     else
     {
@@ -196,15 +172,7 @@ __global__ void advance_step(
         if (!criterion.terminate)
         {
             next_dts.at(index) = criterion.next_dt;
-            // if (index == 0)
-            // {
-            //     printf("ACC\tnext dt: %.15e\n", criterion.next_dt);
-            // }
         }
-        // else if (index == 0)
-        // {
-        //     printf("TER\tnext dt: %.15e\n", next_dts.at(0));
-        // }
     }
 }
 
@@ -323,12 +291,11 @@ __global__ void ephemeris_test_kernel(DeviceEphemeris ephemeris)
     {
         double test_epoch = 9617.0;
         PositionVector earth_pos = ephemeris.calculate_position(test_epoch, 399, 0); // Earth relative to SSB
-        // printf("Earth position at epoch %.15e: [%.15e, %.15e, %.15e]\n",
-            //    test_epoch, earth_pos[0], earth_pos[1], earth_pos[2]);
+        printf("Earth position at epoch %.15e: [%.15e, %.15e, %.15e]\n", test_epoch, earth_pos[0], earth_pos[1], earth_pos[2]);
         PositionVector expected_pos{-2.785302382150888e+07, 1.323128003139767e+08, 5.739756479216209e+07};
         PositionVector diff = expected_pos - earth_pos;
-        // printf("Expected position: [%.15e, %.15e, %.15e]\n", expected_pos[0], expected_pos[1], expected_pos[2]);
-        // printf("Difference: [%.15e, %.15e, %.15e]\n", diff[0], diff[1], diff[2]);
+        printf("Expected position: [%.15e, %.15e, %.15e]\n", expected_pos[0], expected_pos[1], expected_pos[2]);
+        printf("Difference: [%.15e, %.15e, %.15e]\n", diff[0], diff[1], diff[2]);
     }
 }
 

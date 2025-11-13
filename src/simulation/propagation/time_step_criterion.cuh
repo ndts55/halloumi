@@ -65,34 +65,14 @@ struct TimeStepCriterion
         const CudaIndex &index)
     {
         const double dt_value = fabs(current_dt);
-        // if (index == 0)
-        // {
-        //     printf("    > dt value: %.15e\n", dt_value);
-        // }
         const StateVector desired_error_magnitude = calculate_desired_error_magnitude(
             current_state_derivative,
             current_state,
             next_state,
             dt_value);
-        // if (index == 0)
-        // {
-        //     printf("    > desired: [%.15e, %.15e, %.15e, %.15e, %.15e, %.15e]\n",
-        //            desired_error_magnitude[0],
-        //            desired_error_magnitude[1],
-        //            desired_error_magnitude[2],
-        //            desired_error_magnitude[3],
-        //            desired_error_magnitude[4],
-        //            desired_error_magnitude[5]);
-        // }
         // FIXME these values are incorrect
         const StateVector error = calculate_componentwise_truncation_error(d_states, index) * dt_value;
         const double error_ratio = (error / desired_error_magnitude).max_norm();
-        // if (index == 0)
-        // {
-        //     printf("    > trunc error: [%.15e, %.15e, %.15e, %.15e, %.15e, %.15e]\n",
-        //            error[0], error[1], error[2], error[3], error[4], error[5]);
-        //     printf("    > error ratio: %.15e\n", error_ratio);
-        // }
 
         TimeStepCriterion criterion{};
         if (error_ratio >= 1)

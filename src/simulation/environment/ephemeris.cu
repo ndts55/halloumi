@@ -139,11 +139,6 @@ Ephemeris Ephemeris::from_brie(const nlohmann::json &json)
 
 #pragma region DeviceEphemeris::calculate_position
 
-// __device__ inline bool first()
-// {
-//     return threadIdx.x == 0 && blockIdx.x == 0;
-// }
-
 /*
 Reconstructs a continuous position vector from discrete Chebyshev coefficients stored in the ephemeris data.
 */
@@ -151,11 +146,6 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
     const std::size_t &body_index,
     const double &epoch) const
 {
-    // if (first())
-    // {
-    //     printf("    ENTRY: body_index=%llu, epoch=%.15e\n", body_index, epoch);
-    // }
-
     const int nintervals = nintervals_at(body_index);
     const int data_offset = dataoffset_at(body_index);
     const int pdeg = pdeg_at(body_index);
@@ -176,10 +166,6 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
 
     std::size_t idx = (std::size_t)((epoch - intervals.at(0)) / (2. * radius)); // interval selection
     double s = (epoch - intervals.at(idx)) / radius - 1.;                        // normalized  time coordinate
-    // if (first())
-    // {
-    //     printf("Found Interval: %llu\n", idx);
-    // }
     // use clenshaw recurrence relation to efficiently calculate chebyshev polynomials
     PositionVector position{0.0};
     PositionVector w1{0.0};
@@ -187,10 +173,6 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
     double s2 = 2. * s;
     // highestDegree = numIndexes - 1 = degree - 1 + 1 = pdeg - 1 + 1 = pdeg
     // FIXME something is still wrong with coefficients access
-    // if (first())
-    // {
-    //     printf("    Accessing index %llu with nintervals %llu\n", idx, nintervals);
-    // }
     for (std::size_t degree = pdeg; degree > 0; --degree)
     {
         w2 = w1;
@@ -202,15 +184,6 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
         {
             coeff_vector[dim] = coefficients.at(n_coeff_vectors * dim + coeff_index);
         }
-        // if (first())
-        // {
-        //     printf("    Coefficients (degree %llu): [", degree);
-        //     for (std::size_t dim = 0; dim < POSITION_DIM; ++dim)
-        //     {
-        //         printf("%.15e%s", coeff_vector[dim], (dim < POSITION_DIM - 1) ? ", " : "");
-        //     }
-        //     printf("]\n");
-        // }
         position = (w1 * s2 - w2) + coeff_vector;
     }
     { // degree = 0
@@ -221,23 +194,8 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
         {
             coeff_vector[dim] = coefficients.at(n_coeff_vectors * dim + /* coeff_index */ idx);
         }
-        // if (first())
-        // {
-        //     printf("    Coefficients (degree %d): [", 0);
-        //     for (std::size_t dim = 0; dim < POSITION_DIM; ++dim)
-        //     {
-        //         printf("%.15e%s", coeff_vector[dim], (dim < POSITION_DIM - 1) ? ", " : "");
-        //     }
-        //     printf("]\n");
-        // }
         position = (position * s - w1) + coeff_vector;
     }
-
-    // if (threadIdx.x == 0 && blockIdx.x == 0)
-    // {
-    //     printf("Body %zu at epoch %.15e: pos=[%.15e, %.15e, %.15e]", body_index, epoch, position[0], position[1], position[2]);
-    //     printf("  Interval idx=%zu, s=%.15e, radius=%.15e\n", idx, s, radius);
-    // }
 
     return position;
 }
@@ -247,10 +205,6 @@ __device__ PositionVector DeviceEphemeris::read_position(
     const int &target,
     const int &center) const
 {
-    // if (first())
-    // {
-    //     printf("Reading position epoch = %.6e, target = %lld, center = %lld\n", epoch, target, center);
-    // }
     PositionVector position{0.0};
     if (target == center)
     {
@@ -258,24 +212,12 @@ __device__ PositionVector DeviceEphemeris::read_position(
     }
 
     int t = target;
-    // if (first())
-    // {
-    //     printf("  starting with t = %lld\n", t);
-    // }
     while (t != center)
     {
         std::size_t body_index = index_of_target(t);
-        // if (first())
-        // {
-        //     printf("Body Index %llu for Target %lld\n", body_index, t);
-        // }
         // ! We only have type 2 bodies for now.
         position += interpolate_type_2_body_to_position(body_index, epoch);
         t = center_at(body_index);
-        // if (first())
-        // {
-        //     printf("  Calculated body_index = %llu, t = %lld, position = [%.15e, %.15e, %.15e]\n", body_index, t, position[0], position[1], position[2]);
-        // }
     }
     return position;
 }
@@ -286,13 +228,6 @@ __device__ PositionVector DeviceEphemeris::calculate_position(const double &epoc
     PositionVector xc = read_position(epoch, center_of_integration, cc);
     PositionVector xt = read_position(epoch, target, cc);
     PositionVector result = xt - xc;
-    // if (first())
-    // {
-    //     printf("Common center: %lld\n", cc);
-    //     printf("xc: [%.15e, %.15e, %.15e]\n", xc[0], xc[1], xc[2]);
-    //     printf("xt: [%.15e, %.15e, %.15e]\n", xt[0], xt[1], xt[2]);
-    //     printf("result: [%.15e, %.15e, %.15e]\n", result[0], result[1], result[2]);
-    // }
     return result;
 }
 

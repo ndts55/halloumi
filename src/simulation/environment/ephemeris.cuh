@@ -112,19 +112,6 @@ struct DeviceEphemeris
     // Helper methods
     __device__ inline std::size_t index_of_target(const int &target) const
     {
-#ifdef __CUDA_ARCH__
-        // if (threadIdx.x == 0 && blockIdx.x == 0)
-        // {
-        //     printf("====\n");
-        //     printf("size is %llu", n_bodies());
-        //     // FIXME the sizes are different, I get 14 and CUDAjectory getts 4
-        //     for (std::size_t i = 0; i < n_bodies(); ++i)
-        //     {
-        //         auto ti = target_at(i);
-        //         printf("    Target %llu at %llu\n", ti, i);
-        //     }
-        // }
-#endif
         for (std::size_t i = 0; i < n_bodies(); ++i)
         {
             auto ti = target_at(i);
