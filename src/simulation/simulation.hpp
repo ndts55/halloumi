@@ -23,24 +23,24 @@ struct SamplesData
 {
     std::size_t n_vecs;
     Integer center_of_integration;
-    Float duration_in_days;
+    double duration_in_days;
     HostFloatArray end_epochs;
     HostFloatArray start_epochs;
 };
 
 struct ExpectedPropagationState
 {
-    std::vector<Float> states_data;
-    std::vector<Float> epochs;
+    std::vector<double> states_data;
+    std::vector<double> epochs;
 
     static ExpectedPropagationState from_json(const nlohmann::json &json);
 };
 
 struct Tolerances
 {
-    Float position;
-    Float velocity;
-    Float time;
+    double position;
+    double velocity;
+    double time;
 
     static Tolerances from_json(const nlohmann::json &json);
 };

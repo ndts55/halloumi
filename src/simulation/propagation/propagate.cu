@@ -38,7 +38,7 @@ __global__ void prepare_simulation_run(
         simulation_ended.at(i) = false;
     }
 
-    const Float span = end_epochs.at(i) - start_epochs.at(i);
+    const double span = end_epochs.at(i) - start_epochs.at(i);
     next_dts.at(i) = copysign(device_rkf_parameters.initial_time_step, span);
     backwards.at(i) = span < 0;
 }
@@ -64,8 +64,8 @@ __global__ void evaluate_ode(
         return;
     }
 
-    const Float dt = next_dts.at(index);
-    const Float epoch = epochs.at(index);
+    const double dt = next_dts.at(index);
+    const double epoch = epochs.at(index);
 
     { // ! Optimization for stage = 0;
         // Simply read out the state from states
@@ -117,7 +117,7 @@ __global__ void advance_step(
         return;
     }
 
-    const Float dt = next_dts.at(index);
+    const double dt = next_dts.at(index);
     TimeStepCriterion criterion{};
     criterion.current_dt = dt;
     criterion.next_dt = device_rkf_parameters.max_dt_scale * dt;
@@ -247,7 +247,7 @@ __host__ bool all_terminated(
     std::size_t first_grid_size,
     std::size_t block_size)
 {
-    size_t shared_mem_size = block_size * sizeof(Bool);
+    size_t shared_mem_size = block_size * sizeof(uint8_t);
 
     reduce_bool_with_and<<<first_grid_size, block_size, shared_mem_size>>>(termination_flags, reduction_buffer);
     check_cuda_error(cudaDeviceSynchronize(), "first reduction pass on GPU");
@@ -261,7 +261,7 @@ __host__ bool all_terminated(
 
     bool result;
     check_cuda_error(
-        cudaMemcpy(&result, reduction_buffer.data, sizeof(Bool), cudaMemcpyDeviceToHost),
+        cudaMemcpy(&result, reduction_buffer.data, sizeof(uint8_t), cudaMemcpyDeviceToHost),
         "Error copying reduction result from device to host");
 
     return (bool)result;
@@ -321,7 +321,7 @@ __global__ void ephemeris_test_kernel(DeviceEphemeris ephemeris)
 {
     if (index_in_grid() == 0)
     {
-        Float test_epoch = 9617.0;
+        double test_epoch = 9617.0;
         PositionVector earth_pos = ephemeris.calculate_position(test_epoch, 399, 0); // Earth relative to SSB
         // printf("Earth position at epoch %.15e: [%.15e, %.15e, %.15e]\n",
             //    test_epoch, earth_pos[0], earth_pos[1], earth_pos[2]);

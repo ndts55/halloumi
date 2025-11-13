@@ -34,10 +34,10 @@ struct DeviceEphemeris
     // TODO use pointer types directly and store n_vecs only once
     DeviceFloatArray data; // ? is this really a 1d array?
     DeviceMatrix<Integer, INTSIZE> integers;
-    DeviceMatrix<Float, REALSIZE> floats;
+    DeviceMatrix<double, REALSIZE> floats;
 
     DeviceEphemeris() = default;
-    DeviceEphemeris(DeviceFloatArray &&d, DeviceMatrix<Integer, INTSIZE> &&i, DeviceMatrix<Float, REALSIZE> &&f)
+    DeviceEphemeris(DeviceFloatArray &&d, DeviceMatrix<Integer, INTSIZE> &&i, DeviceMatrix<double, REALSIZE> &&f)
         : data(std::move(d)), integers(std::move(i)), floats(std::move(f)) {}
 
     // Integers
@@ -82,18 +82,18 @@ struct DeviceEphemeris
     }
 
     // Floats
-    __device__ inline const Float &initial_epoch_at(std::size_t idx) const
+    __device__ inline const double &initial_epoch_at(std::size_t idx) const
     {
         return floats.at(idx, INITIALEPOCH);
     }
 
-    __device__ inline const Float &final_epoch_at(std::size_t idx) const
+    __device__ inline const double &final_epoch_at(std::size_t idx) const
     {
         return floats.at(idx, FINALEPOCH);
     }
 
     // Data
-    __device__ inline const Float &data_at(std::size_t index) const
+    __device__ inline const double &data_at(std::size_t index) const
     {
         return data.at(index);
     }
@@ -175,18 +175,18 @@ struct DeviceEphemeris
         }
     }
 
-    __device__ PositionVector calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const;
+    __device__ PositionVector calculate_position(const double &epoch, const Integer &target, const Integer &center_of_integration) const;
 
-    __device__ PositionVector read_position(const Float &epoch, const Integer &target, const Integer &center) const;
+    __device__ PositionVector read_position(const double &epoch, const Integer &target, const Integer &center) const;
 
-    __device__ PositionVector interpolate_type_2_body_to_position(const std::size_t &body_index, const Float &epoch) const;
+    __device__ PositionVector interpolate_type_2_body_to_position(const std::size_t &body_index, const double &epoch) const;
 };
 
 struct Ephemeris
 {
     HostFloatArray data;
     HostMatrix<Integer, INTSIZE> integers;
-    HostMatrix<Float, REALSIZE> floats;
+    HostMatrix<double, REALSIZE> floats;
 
     static Ephemeris from_brie(const nlohmann::json &json);
 

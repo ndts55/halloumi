@@ -14,23 +14,23 @@
 
 struct Errors
 {
-    Float position_error;
-    Float velocity_error;
-    Float epoch_error;
+    double position_error;
+    double velocity_error;
+    double epoch_error;
 
     static Errors from_simulation(const Simulation &simulation)
     {
-        std::vector<Float> state_error_components(simulation.n_samples() * STATE_DIM);
+        std::vector<double> state_error_components(simulation.n_samples() * STATE_DIM);
         std::transform(
             simulation.propagation_state.states.begin(),
             simulation.propagation_state.states.end(),
             simulation.expected_propagation_state.states_data.begin(),
             state_error_components.begin(),
-            [](const Float &a, const Float &b)
+            [](const double &a, const double &b)
             {
                 return std::pow(a - b, 2.0);
             });
-        std::vector<Float> position_error_components(simulation.n_samples(), 0.0);
+        std::vector<double> position_error_components(simulation.n_samples(), 0.0);
         for (auto vidx = 0; vidx < simulation.n_samples(); ++vidx)
         {
             for (auto dim = POSITION_OFFSET; dim < POSITION_OFFSET + POSITION_DIM; ++dim)
@@ -39,9 +39,9 @@ struct Errors
             }
             position_error_components[vidx] = std::sqrt(position_error_components[vidx]);
         }
-        Float position_error = *std::max_element(position_error_components.begin(), position_error_components.end());
+        double position_error = *std::max_element(position_error_components.begin(), position_error_components.end());
 
-        std::vector<Float> velocity_error_components(simulation.n_samples());
+        std::vector<double> velocity_error_components(simulation.n_samples());
         for (auto vidx = 0; vidx < simulation.n_samples(); ++vidx)
         {
             for (auto dim = VELOCITY_OFFSET; dim < VELOCITY_OFFSET + VELOCITY_DIM; ++dim)
@@ -50,7 +50,7 @@ struct Errors
             }
             velocity_error_components[vidx] = std::sqrt(velocity_error_components[vidx]);
         }
-        Float velocity_error = *std::max_element(velocity_error_components.begin(), velocity_error_components.end());
+        double velocity_error = *std::max_element(velocity_error_components.begin(), velocity_error_components.end());
 
 #ifndef NDEBUG
         print_vector_mean(position_error_components, "Position error components");
@@ -59,17 +59,17 @@ struct Errors
         print_failed_count(velocity_error_components, "Velocity error components", simulation.tolerances.velocity);
 #endif
 
-        std::vector<Float> epoch_error_components(simulation.n_samples());
+        std::vector<double> epoch_error_components(simulation.n_samples());
         std::transform(
             simulation.propagation_state.epochs.begin(),
             simulation.propagation_state.epochs.end(),
             simulation.expected_propagation_state.epochs.begin(),
             epoch_error_components.begin(),
-            [](const Float &a, const Float &b)
+            [](const double &a, const double &b)
             {
                 return std::abs(a - b);
             });
-        Float epoch_error = *std::max_element(epoch_error_components.begin(), epoch_error_components.end());
+        double epoch_error = *std::max_element(epoch_error_components.begin(), epoch_error_components.end());
 
         return Errors{position_error, velocity_error, epoch_error};
     }

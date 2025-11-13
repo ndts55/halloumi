@@ -4,10 +4,10 @@
 
 namespace RKF78
 {
-    __constant__ Float d_c[NStages - 1];
-    __constant__ Float d_b[NStages];
-    __constant__ Float d_be[NStages];
-    __constant__ Float d_a[NStages - 1][NStages - 1];
+    __constant__ double d_c[NStages - 1];
+    __constant__ double d_b[NStages];
+    __constant__ double d_be[NStages];
+    __constant__ double d_a[NStages - 1][NStages - 1];
 
     cudaError_t initialize_device_tableau()
     {

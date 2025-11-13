@@ -18,24 +18,22 @@ constexpr std::size_t VELOCITY_OFFSET = POSITION_DIM + POSITION_OFFSET;
 #pragma region Type Definitions
 
 using Integer = long int;
-using Float = double;
-using Bool = uint8_t;
 
-using StateVector = Vec<Float, STATE_DIM>;
-using PositionVector = Vec<Float, POSITION_DIM>;
-using VelocityVector = Vec<Float, VELOCITY_DIM>;
+using StateVector = Vec<double, STATE_DIM>;
+using PositionVector = Vec<double, POSITION_DIM>;
+using VelocityVector = Vec<double, VELOCITY_DIM>;
 
-using HostFloatArray = HostArray<Float>;
+using HostFloatArray = HostArray<double>;
 using HostIntegerArray = HostArray<Integer>;
-using HostBoolArray = HostArray<Bool>;
-using HostStatesMatrix = HostMatrix<Float, STATE_DIM>;
-using HostDerivativesTensor = HostTensor<Float, RKF78::NStages, STATE_DIM>;
+using HostBoolArray = HostArray<uint8_t>;
+using HostStatesMatrix = HostMatrix<double, STATE_DIM>;
+using HostDerivativesTensor = HostTensor<double, RKF78::NStages, STATE_DIM>;
 
-using DeviceFloatArray = DeviceArray<Float>;
+using DeviceFloatArray = DeviceArray<double>;
 using DeviceIntegerArray = DeviceArray<Integer>;
-using DeviceBoolArray = DeviceArray<Bool>;
-using DeviceStatesMatrix = DeviceMatrix<Float, STATE_DIM>;
-using DeviceDerivativesTensor = DeviceTensor<Float, RKF78::NStages, STATE_DIM>;
+using DeviceBoolArray = DeviceArray<uint8_t>;
+using DeviceStatesMatrix = DeviceMatrix<double, STATE_DIM>;
+using DeviceDerivativesTensor = DeviceTensor<double, RKF78::NStages, STATE_DIM>;
 
 using CudaIndex = unsigned int;
 

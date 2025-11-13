@@ -34,7 +34,7 @@ Ephemeris load_brie_v1(const nlohmann::json &core)
     // Construct arrays
     HostFloatArray bodies(data_size);
     HostMatrix<Integer, INTSIZE> integers(n_bodies);
-    HostMatrix<Float, REALSIZE> floats(n_bodies);
+    HostMatrix<double, REALSIZE> floats(n_bodies);
 
     // Fill arrays
     std::size_t idx = 0;
@@ -83,7 +83,7 @@ Ephemeris load_brie_v2(const nlohmann::json &core)
     std::size_t n_bodies = metadata["nBodyUnits"];
 
     HostMatrix<Integer, INTSIZE> integers(n_bodies);
-    HostMatrix<Float, REALSIZE> floats(n_bodies);
+    HostMatrix<double, REALSIZE> floats(n_bodies);
     HostFloatArray data(core["data"].size());
 
     std::copy(metadata["intMetadata"].begin(), metadata["intMetadata"].end(), integers.begin());
@@ -149,7 +149,7 @@ Reconstructs a continuous position vector from discrete Chebyshev coefficients s
 */
 __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
     const std::size_t &body_index,
-    const Float &epoch) const
+    const double &epoch) const
 {
     // if (first())
     // {
@@ -162,7 +162,7 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
     const std::size_t n_indexes = pdeg + 1;
 
     // data = [ ...[other data; (data_offset)], interval radius, ...[intervals; (nintervals)], ...[coefficients; (nintervals * (pdeg + 1))] ]
-    const Float radius = data_at(data_offset);
+    const double radius = data_at(data_offset);
     DeviceFloatArray intervals{
         .n_elements = (std::size_t)nintervals,
         .data = data.data + data_offset + 1,
@@ -175,7 +175,7 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
     };
 
     std::size_t idx = (std::size_t)((epoch - intervals.at(0)) / (2. * radius)); // interval selection
-    Float s = (epoch - intervals.at(idx)) / radius - 1.;                        // normalized  time coordinate
+    double s = (epoch - intervals.at(idx)) / radius - 1.;                        // normalized  time coordinate
     // if (first())
     // {
     //     printf("Found Interval: %llu\n", idx);
@@ -184,7 +184,7 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
     PositionVector position{0.0};
     PositionVector w1{0.0};
     PositionVector w2{0.0};
-    Float s2 = 2. * s;
+    double s2 = 2. * s;
     // highestDegree = numIndexes - 1 = degree - 1 + 1 = pdeg - 1 + 1 = pdeg
     // FIXME something is still wrong with coefficients access
     // if (first())
@@ -243,7 +243,7 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
 }
 
 __device__ PositionVector DeviceEphemeris::read_position(
-    const Float &epoch,
+    const double &epoch,
     const Integer &target,
     const Integer &center) const
 {
@@ -280,7 +280,7 @@ __device__ PositionVector DeviceEphemeris::read_position(
     return position;
 }
 
-__device__ PositionVector DeviceEphemeris::calculate_position(const Float &epoch, const Integer &target, const Integer &center_of_integration) const
+__device__ PositionVector DeviceEphemeris::calculate_position(const double &epoch, const Integer &target, const Integer &center_of_integration) const
 {
     const Integer cc = common_center(target, center_of_integration);
     PositionVector xc = read_position(epoch, center_of_integration, cc);

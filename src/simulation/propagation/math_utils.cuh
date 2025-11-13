@@ -7,17 +7,17 @@
 #include "simulation/environment/constants.cuh"
 #include "simulation/rkf_parameters.cuh"
 
-__device__ inline VelocityVector two_body(const PositionVector &position_delta, const Float &gm)
+__device__ inline VelocityVector two_body(const PositionVector &position_delta, const double &gm)
 {
     return position_delta * -gm * position_delta.reciprocal_cubed_norm();
 }
 
-__device__ inline VelocityVector three_body_barycentric(const PositionVector &source_position, const PositionVector &body_position, const Float &gm)
+__device__ inline VelocityVector three_body_barycentric(const PositionVector &source_position, const PositionVector &body_position, const double &gm)
 {
     return two_body(source_position - body_position, gm);
 }
 
-__device__ inline VelocityVector three_body_non_barycentric(const PositionVector &source_position, const PositionVector &body_position, const Float &gm)
+__device__ inline VelocityVector three_body_non_barycentric(const PositionVector &source_position, const PositionVector &body_position, const double &gm)
 {
     return three_body_barycentric(source_position, body_position, gm) + two_body(body_position, gm);
 }
@@ -29,14 +29,14 @@ __device__ StateVector calculate_current_state(
     // Computation coordinates
     const CudaIndex &index,
     const int &stage,
-    const Float &dt)
+    const double &dt)
 {
     StateVector state{0.0};
 
     // sum intermediate d_states up to stage
     for (auto st = 0; st < stage; ++st)
     {
-        Float coefficient = RKF78::coefficient(stage, st);
+        double coefficient = RKF78::coefficient(stage, st);
         state += d_states.vector_at(st, index) * coefficient;
     }
 
@@ -52,7 +52,7 @@ __device__ StateVector calculate_current_state(
 __device__ VelocityVector calculate_velocity_derivative(
     // Primary inputes
     const PositionVector &current_position,
-    const Float &epoch,
+    const double &epoch,
     // Physics configs
     const Integer &center_of_integration,
     const DeviceIntegerArray &active_bodies,

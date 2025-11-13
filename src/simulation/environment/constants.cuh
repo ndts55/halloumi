@@ -23,20 +23,20 @@ namespace celestial_constants
 
     constexpr std::array<Integer, BODY_COUNT> BODY_IDS = {SUN_ID, EARTH_ID, MOON_ID};
 
-    constexpr Float SUN_GM = 1.3271244004193938E+11;
-    constexpr Float EARTH_GM = 3.9860043543609598E+05;
-    constexpr Float MOON_GM = 4.9028000661637961E+03;
-    // constexpr Float EARTH_BARYCENTER_GM = ? ;
+    constexpr double SUN_GM = 1.3271244004193938E+11;
+    constexpr double EARTH_GM = 3.9860043543609598E+05;
+    constexpr double MOON_GM = 4.9028000661637961E+03;
+    // constexpr double EARTH_BARYCENTER_GM = ? ;
 
-    constexpr std::array<Float, BODY_COUNT> BODY_GMS = {SUN_GM, EARTH_GM, MOON_GM};
-    constexpr std::array<std::array<Float, BODY_COUNT>, NUM_BODY_CONSTANTS> BODY_CONSTANTS = {BODY_GMS};
+    constexpr std::array<double, BODY_COUNT> BODY_GMS = {SUN_GM, EARTH_GM, MOON_GM};
+    constexpr std::array<std::array<double, BODY_COUNT>, NUM_BODY_CONSTANTS> BODY_CONSTANTS = {BODY_GMS};
 
-    constexpr Float SUN_RADIUS = 696342.0;
-    constexpr Float MOON_RADIUS = 1737.5;
-    constexpr Float EARTH_RADIUS = 6378.1366;
+    constexpr double SUN_RADIUS = 696342.0;
+    constexpr double MOON_RADIUS = 1737.5;
+    constexpr double EARTH_RADIUS = 6378.1366;
 
-    constexpr Float AU = 1.4959787070000000E+08;
-    constexpr Float SPEED_OF_LIGHT = 2.9979245800000000E+05;
+    constexpr double AU = 1.4959787070000000E+08;
+    constexpr double SPEED_OF_LIGHT = 2.9979245800000000E+05;
 }
 
 struct DeviceConstants
@@ -61,7 +61,7 @@ public:
         return 0;
     }
 
-    __device__ inline Float gm_for(Integer body_id) const
+    __device__ inline double gm_for(Integer body_id) const
     {
         return gms.at(index_of(body_id));
     }

@@ -18,20 +18,20 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
     HostBoolArray terminated(n_vecs, false);
 
     // Immutable state that has to be calculated
-    Float duration_in_days = configuration["simConfig"]["durationDays"];
+    double duration_in_days = configuration["simConfig"]["durationDays"];
     HostFloatArray start_epochs(n_vecs);
     HostFloatArray end_epochs(n_vecs);
 
     // Immutable expected state
     std::vector<StateVector> expected_states;
     expected_states.reserve(n_vecs);
-    std::vector<Float> expected_epochs;
+    std::vector<double> expected_epochs;
     expected_epochs.reserve(n_vecs);
 
     std::size_t idx = 0;
     for (auto sample : in_samples)
     {
-        Float e = sample["epoch"];
+        double e = sample["epoch"];
         epochs.at(idx) = e;
         start_epochs.at(idx) = e;
         end_epochs.at(idx) = e + duration_in_days;
@@ -75,8 +75,8 @@ ExpectedPropagationState ExpectedPropagationState::from_json(const nlohmann::jso
 {
     const auto out_samples = json["outSamples"];
     const auto n_vecs = out_samples.size();
-    std::vector<Float> states(n_vecs * STATE_DIM, 0.0);
-    std::vector<Float> epochs;
+    std::vector<double> states(n_vecs * STATE_DIM, 0.0);
+    std::vector<double> epochs;
     epochs.reserve(n_vecs);
     auto index = 0;
     for (const auto &sample : out_samples)
