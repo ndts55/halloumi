@@ -13,9 +13,9 @@ set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -G")
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.cu)
-file(GLOB_RECURSE HEADER_FILES include/*.h include/*.cuh)
+file(GLOB_RECURSE HEADER_FILES src/*.hpp src/*.cuh)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
 add_executable(halloumi ${SRC_FILES} ${HEADER_FILES})
 
