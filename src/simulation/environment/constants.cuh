@@ -14,14 +14,14 @@ enum BodyConstants
 };
 namespace celestial_constants
 {
-    constexpr Integer SUN_ID = 10;
-    constexpr Integer EARTH_ID = 399;
-    constexpr Integer MOON_ID = 301;
-    // constexpr Integer EARTH_BARYCENTER_ID = 3;
+    constexpr int SUN_ID = 10;
+    constexpr int EARTH_ID = 399;
+    constexpr int MOON_ID = 301;
+    // constexpr int EARTH_BARYCENTER_ID = 3;
 
     constexpr std::size_t BODY_COUNT = 3;
 
-    constexpr std::array<Integer, BODY_COUNT> BODY_IDS = {SUN_ID, EARTH_ID, MOON_ID};
+    constexpr std::array<int, BODY_COUNT> BODY_IDS = {SUN_ID, EARTH_ID, MOON_ID};
 
     constexpr double SUN_GM = 1.3271244004193938E+11;
     constexpr double EARTH_GM = 3.9860043543609598E+05;
@@ -49,7 +49,7 @@ public:
     DeviceConstants(DeviceIntegerArray &&ids, DeviceFloatArray &&g)
         : body_ids(std::move(ids)), gms(std::move(g)) {}
 
-    __device__ inline std::size_t index_of(Integer body_id) const
+    __device__ inline std::size_t index_of(int body_id) const
     {
         for (std::size_t i = 0; i < body_ids.n_elements; ++i)
         {
@@ -61,7 +61,7 @@ public:
         return 0;
     }
 
-    __device__ inline double gm_for(Integer body_id) const
+    __device__ inline double gm_for(int body_id) const
     {
         return gms.at(index_of(body_id));
     }

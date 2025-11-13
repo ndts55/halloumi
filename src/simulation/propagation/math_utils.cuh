@@ -54,7 +54,7 @@ __device__ VelocityVector calculate_velocity_derivative(
     const PositionVector &current_position,
     const double &epoch,
     // Physics configs
-    const Integer &center_of_integration,
+    const int &center_of_integration,
     const DeviceIntegerArray &active_bodies,
     const DeviceConstants &constants,
     const DeviceEphemeris &ephemeris)
@@ -65,7 +65,7 @@ __device__ VelocityVector calculate_velocity_derivative(
     {
         for (std::size_t i = 0; i < active_bodies.n_elements; ++i)
         {
-            const Integer target = active_bodies.at(i);
+            const int target = active_bodies.at(i);
             const PositionVector body_position = ephemeris.calculate_position(epoch, target, center_of_integration);
             velocity_derivative += three_body_barycentric(current_position, body_position, constants.gm_for(target));
         }
@@ -74,7 +74,7 @@ __device__ VelocityVector calculate_velocity_derivative(
     {
         for (std::size_t i = 0; i < active_bodies.n_elements; ++i)
         {
-            const Integer target = active_bodies.at(i);
+            const int target = active_bodies.at(i);
             if (target != center_of_integration)
             {
                 const PositionVector body_position = ephemeris.calculate_position(epoch, target, center_of_integration);

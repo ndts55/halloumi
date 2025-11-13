@@ -33,7 +33,7 @@ Ephemeris load_brie_v1(const nlohmann::json &core)
 
     // Construct arrays
     HostFloatArray bodies(data_size);
-    HostMatrix<Integer, INTSIZE> integers(n_bodies);
+    HostMatrix<int, INTSIZE> integers(n_bodies);
     HostMatrix<double, REALSIZE> floats(n_bodies);
 
     // Fill arrays
@@ -82,7 +82,7 @@ Ephemeris load_brie_v2(const nlohmann::json &core)
     auto metadata = core["metadata"];
     std::size_t n_bodies = metadata["nBodyUnits"];
 
-    HostMatrix<Integer, INTSIZE> integers(n_bodies);
+    HostMatrix<int, INTSIZE> integers(n_bodies);
     HostMatrix<double, REALSIZE> floats(n_bodies);
     HostFloatArray data(core["data"].size());
 
@@ -156,9 +156,9 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
     //     printf("    ENTRY: body_index=%llu, epoch=%.15e\n", body_index, epoch);
     // }
 
-    const Integer nintervals = nintervals_at(body_index);
-    const Integer data_offset = dataoffset_at(body_index);
-    const Integer pdeg = pdeg_at(body_index);
+    const int nintervals = nintervals_at(body_index);
+    const int data_offset = dataoffset_at(body_index);
+    const int pdeg = pdeg_at(body_index);
     const std::size_t n_indexes = pdeg + 1;
 
     // data = [ ...[other data; (data_offset)], interval radius, ...[intervals; (nintervals)], ...[coefficients; (nintervals * (pdeg + 1))] ]
@@ -244,8 +244,8 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
 
 __device__ PositionVector DeviceEphemeris::read_position(
     const double &epoch,
-    const Integer &target,
-    const Integer &center) const
+    const int &target,
+    const int &center) const
 {
     // if (first())
     // {
@@ -257,7 +257,7 @@ __device__ PositionVector DeviceEphemeris::read_position(
         return position;
     }
 
-    Integer t = target;
+    int t = target;
     // if (first())
     // {
     //     printf("  starting with t = %lld\n", t);
@@ -280,9 +280,9 @@ __device__ PositionVector DeviceEphemeris::read_position(
     return position;
 }
 
-__device__ PositionVector DeviceEphemeris::calculate_position(const double &epoch, const Integer &target, const Integer &center_of_integration) const
+__device__ PositionVector DeviceEphemeris::calculate_position(const double &epoch, const int &target, const int &center_of_integration) const
 {
-    const Integer cc = common_center(target, center_of_integration);
+    const int cc = common_center(target, center_of_integration);
     PositionVector xc = read_position(epoch, center_of_integration, cc);
     PositionVector xt = read_position(epoch, target, cc);
     PositionVector result = xt - xc;

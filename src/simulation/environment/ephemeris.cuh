@@ -7,7 +7,7 @@
 
 enum IntMembers
 {
-    /* Integer members composing the Ephemeris metadata */
+    /* int members composing the Ephemeris metadata */
     FRAME,
     DTYPE,
     TARGET,
@@ -33,50 +33,50 @@ struct DeviceEphemeris
 {
     // TODO use pointer types directly and store n_vecs only once
     DeviceFloatArray data; // ? is this really a 1d array?
-    DeviceMatrix<Integer, INTSIZE> integers;
+    DeviceMatrix<int, INTSIZE> integers;
     DeviceMatrix<double, REALSIZE> floats;
 
     DeviceEphemeris() = default;
-    DeviceEphemeris(DeviceFloatArray &&d, DeviceMatrix<Integer, INTSIZE> &&i, DeviceMatrix<double, REALSIZE> &&f)
+    DeviceEphemeris(DeviceFloatArray &&d, DeviceMatrix<int, INTSIZE> &&i, DeviceMatrix<double, REALSIZE> &&f)
         : data(std::move(d)), integers(std::move(i)), floats(std::move(f)) {}
 
     // Integers
-    __device__ inline const Integer &frame_at(std::size_t idx) const
+    __device__ inline const int &frame_at(std::size_t idx) const
     {
         return integers.at(idx, FRAME);
     }
 
-    __device__ inline const Integer &dtype_at(std::size_t idx) const
+    __device__ inline const int &dtype_at(std::size_t idx) const
     {
         return integers.at(idx, DTYPE);
     }
 
-    __device__ inline const Integer &target_at(std::size_t idx) const
+    __device__ inline const int &target_at(std::size_t idx) const
     {
         return integers.at(idx, TARGET);
     }
 
-    __device__ inline const Integer &center_at(std::size_t idx) const
+    __device__ inline const int &center_at(std::size_t idx) const
     {
         return integers.at(idx, CENTER);
     }
 
-    __device__ inline const Integer &nintervals_at(std::size_t idx) const
+    __device__ inline const int &nintervals_at(std::size_t idx) const
     {
         return integers.at(idx, NINTERVALS);
     }
 
-    __device__ inline const Integer &pdeg_at(std::size_t idx) const
+    __device__ inline const int &pdeg_at(std::size_t idx) const
     {
         return integers.at(idx, PDEG);
     }
 
-    __device__ inline const Integer &dataoffset_at(std::size_t idx) const
+    __device__ inline const int &dataoffset_at(std::size_t idx) const
     {
         return integers.at(idx, DATAOFFSET);
     }
 
-    __device__ inline const Integer &datasize_at(std::size_t idx) const
+    __device__ inline const int &datasize_at(std::size_t idx) const
     {
         return integers.at(idx, DATASIZE);
     }
@@ -110,7 +110,7 @@ struct DeviceEphemeris
     }
 
     // Helper methods
-    __device__ inline std::size_t index_of_target(const Integer &target) const
+    __device__ inline std::size_t index_of_target(const int &target) const
     {
 #ifdef __CUDA_ARCH__
         // if (threadIdx.x == 0 && blockIdx.x == 0)
@@ -137,16 +137,16 @@ struct DeviceEphemeris
         return n_bodies();
     }
 
-    __device__ Integer common_center(const Integer &target, const Integer &center) const
+    __device__ int common_center(const int &target, const int &center) const
     {
         if (target == 0 || center == 0)
         {
             return 0;
         }
 
-        Integer tc = target;
-        Integer cc = center;
-        Integer tcnew, ccnew;
+        int tc = target;
+        int cc = center;
+        int tcnew, ccnew;
 
         while (tc != cc && tc != 0 && cc != 0)
         {
@@ -175,9 +175,9 @@ struct DeviceEphemeris
         }
     }
 
-    __device__ PositionVector calculate_position(const double &epoch, const Integer &target, const Integer &center_of_integration) const;
+    __device__ PositionVector calculate_position(const double &epoch, const int &target, const int &center_of_integration) const;
 
-    __device__ PositionVector read_position(const double &epoch, const Integer &target, const Integer &center) const;
+    __device__ PositionVector read_position(const double &epoch, const int &target, const int &center) const;
 
     __device__ PositionVector interpolate_type_2_body_to_position(const std::size_t &body_index, const double &epoch) const;
 };
@@ -185,7 +185,7 @@ struct DeviceEphemeris
 struct Ephemeris
 {
     HostFloatArray data;
-    HostMatrix<Integer, INTSIZE> integers;
+    HostMatrix<int, INTSIZE> integers;
     HostMatrix<double, REALSIZE> floats;
 
     static Ephemeris from_brie(const nlohmann::json &json);

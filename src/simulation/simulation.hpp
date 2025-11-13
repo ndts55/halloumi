@@ -22,7 +22,7 @@ struct PropagationState
 struct SamplesData
 {
     std::size_t n_vecs;
-    Integer center_of_integration;
+    int center_of_integration;
     double duration_in_days;
     HostFloatArray end_epochs;
     HostFloatArray start_epochs;

@@ -17,20 +17,18 @@ constexpr std::size_t VELOCITY_OFFSET = POSITION_DIM + POSITION_OFFSET;
 
 #pragma region Type Definitions
 
-using Integer = long int;
-
 using StateVector = Vec<double, STATE_DIM>;
 using PositionVector = Vec<double, POSITION_DIM>;
 using VelocityVector = Vec<double, VELOCITY_DIM>;
 
 using HostFloatArray = HostArray<double>;
-using HostIntegerArray = HostArray<Integer>;
+using HostIntegerArray = HostArray<int>;
 using HostBoolArray = HostArray<uint8_t>;
 using HostStatesMatrix = HostMatrix<double, STATE_DIM>;
 using HostDerivativesTensor = HostTensor<double, RKF78::NStages, STATE_DIM>;
 
 using DeviceFloatArray = DeviceArray<double>;
-using DeviceIntegerArray = DeviceArray<Integer>;
+using DeviceIntegerArray = DeviceArray<int>;
 using DeviceBoolArray = DeviceArray<uint8_t>;
 using DeviceStatesMatrix = DeviceMatrix<double, STATE_DIM>;
 using DeviceDerivativesTensor = DeviceTensor<double, RKF78::NStages, STATE_DIM>;

@@ -53,7 +53,7 @@ __global__ void evaluate_ode(
     // Control flags
     const DeviceBoolArray termination_flags,
     // Physics configs
-    const Integer center_of_integration,
+    const int center_of_integration,
     const DeviceIntegerArray active_bodies,
     const DeviceConstants constants,
     const DeviceEphemeris ephemeris)
