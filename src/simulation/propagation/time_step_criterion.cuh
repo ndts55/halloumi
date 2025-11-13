@@ -138,6 +138,7 @@ struct TimeStepCriterion
             this->next_dt = end_epoch - next_epoch;
             this->refine = true;
         }
+        this->combine_with(criterion);
     }
 
     __device__ inline TimeStepCriterion &operator|=(const TimeStepCriterion &other)
