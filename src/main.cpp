@@ -8,10 +8,6 @@
 #include "cuda/vec.cuh"
 #include "core/types.cuh"
 
-// TODO take config file as command line argument
-// ? write output data to some output file for easy comparison
-// TODO test register count for unrolled / not unrolled for loop
-
 struct Errors
 {
     double position_error;

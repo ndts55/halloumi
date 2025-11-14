@@ -136,16 +136,18 @@ __global__ void advance_step(
     // FIXME dt now is wrong after this call
 
     // check for end of simulation
-    if (!criterion.terminate && !criterion.reject)
-    {
-        // FIXME the code that is actually executed does not do this! It looks at some events
-        criterion.evaluate_simulation_end(
-            criterion.current_dt,
-            criterion.next_dt,
-            epochs.at(index),
-            start_epochs.at(index),
-            end_epochs.at(index));
-    }
+    // if (!criterion.terminate && !criterion.reject)
+    // {
+    //     // FIXME the code that is actually executed does not do this! It looks at some events
+    //     criterion.evaluate_simulation_end(
+    //         criterion.current_dt,
+    //         criterion.next_dt,
+    //         epochs.at(index),
+    //         start_epochs.at(index),
+    //         end_epochs.at(index));
+    // }
+
+    // TODO evaluate adapting events
 
     if (!criterion.terminate && !criterion.refine)
     {

@@ -157,7 +157,6 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
         .n_elements = (std::size_t)nintervals,
         .data = data.data + data_offset + 1,
     };
-    // TODO create dynamic device array where vector size does not have to be a compile-time constant
     const std::size_t n_coeff_vectors = (std::size_t)nintervals * n_indexes;
     const DeviceFloatArray coefficients{
         .n_elements = POSITION_DIM * n_coeff_vectors,
@@ -172,7 +171,6 @@ __device__ PositionVector DeviceEphemeris::interpolate_type_2_body_to_position(
     PositionVector w2{0.0};
     double s2 = 2. * s;
     // highestDegree = numIndexes - 1 = degree - 1 + 1 = pdeg - 1 + 1 = pdeg
-    // FIXME something is still wrong with coefficients access
     for (std::size_t degree = pdeg; degree > 0; --degree)
     {
         w2 = w1;
