@@ -1,0 +1,17 @@
+{
+  "name": "Config HEO SSE 300k samples",
+  "samples": "acceptance/samples_heo_sse_300k.json,
+  "simConfig": {
+    "durationDays": 100.0,
+    "withCollisions": false,
+    "config": "acceptance/standard_cudajectory_config.json"
+  },
+  "validation": {
+    "type": "perSampleError",
+    "absTol": {
+      "time": 0,
+      "pos": 1.2e-5,
+      "vel": 1e-8
+    }
+  }
+}
