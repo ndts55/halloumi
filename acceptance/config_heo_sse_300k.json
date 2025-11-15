@@ -1,6 +1,6 @@
 {
   "name": "Config HEO SSE 300k samples",
-  "samples": "acceptance/samples_heo_sse_300k.json,
+  "samples": "acceptance/samples_heo_sse_300k.json",
   "simConfig": {
     "durationDays": 100.0,
     "withCollisions": false,
