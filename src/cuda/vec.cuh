@@ -27,6 +27,7 @@ struct Vec
     __host__ __device__ inline Vec<T, Size> slice() const
     {
         Vec<T, Size> result;
+#pragma unroll
         for (std::size_t i = 0; i < Size; ++i)
         {
             result[i] = data[Start + i];
@@ -38,11 +39,13 @@ struct Vec
     __host__ __device__ inline Vec<T, TotalN> append(const Vec<T, TailN> &other) const
     {
         Vec<T, TotalN> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = data[i];
         }
 
+#pragma unroll
         for (std::size_t i = 0; i < TailN; ++i)
         {
             result[N + i] = other[i];
@@ -57,6 +60,7 @@ struct Vec
     __host__ __device__ inline T squared_norm() const
     {
         T norm{0};
+#pragma unroll
         for (const T &v : data)
         {
             norm += v * v;
@@ -78,6 +82,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> componentwise_abs() const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = abs(data[i]);
@@ -88,6 +93,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> componentwise_max(const Vec<T, N> &other) const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = max(data[i], other[i]);
@@ -98,6 +104,7 @@ struct Vec
     __host__ __device__ inline T max_norm() const
     {
         T max_value = data[0];
+#pragma unroll
         for (std::size_t i = 1; i < N; ++i)
         {
             max_value = max(max_value, data[i]);
@@ -112,6 +119,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> operator+(const Vec<T, N> &other) const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = data[i] + other[i];
@@ -122,6 +130,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> operator-(const Vec<T, N> &other) const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = data[i] - other[i];
@@ -131,6 +140,7 @@ struct Vec
 
     __host__ __device__ inline Vec<T, N> &operator+=(const Vec<T, N> &other)
     {
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             data[i] += other.data[i];
@@ -140,6 +150,7 @@ struct Vec
 
     __host__ __device__ inline Vec<T, N> &operator-=(const Vec<T, N> &other)
     {
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
             data[i] -= other.data[i];
         return *this;
@@ -148,6 +159,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> operator*(const T scalar) const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = data[i] * scalar;
@@ -157,6 +169,7 @@ struct Vec
 
     __host__ __device__ inline Vec<T, N> &operator*=(const T scalar)
     {
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             data[i] *= scalar;
@@ -167,6 +180,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> operator+(const T scalar) const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = data[i] + scalar;
@@ -177,6 +191,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> operator-(const T scalar) const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = data[i] - scalar;
@@ -186,6 +201,7 @@ struct Vec
 
     __host__ __device__ inline Vec<T, N> &operator+=(const T scalar)
     {
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             data[i] += scalar;
@@ -195,6 +211,7 @@ struct Vec
 
     __host__ __device__ inline Vec<T, N> &operator-=(const T scalar)
     {
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             data[i] -= scalar;
@@ -205,6 +222,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> operator/(const T scalar) const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = data[i] / scalar;
@@ -214,6 +232,7 @@ struct Vec
 
     __host__ __device__ inline Vec<T, N> &operator/=(const T scalar)
     {
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             data[i] /= scalar;
@@ -224,6 +243,7 @@ struct Vec
     __host__ __device__ inline Vec<T, N> operator/(const Vec<T, N> &other) const
     {
         Vec<T, N> result;
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             result[i] = data[i] / other[i];
@@ -233,6 +253,7 @@ struct Vec
 
     __host__ __device__ inline Vec<T, N> &operator/=(const Vec<T, N> &other)
     {
+#pragma unroll
         for (std::size_t i = 0; i < N; ++i)
         {
             data[i] /= other[i];

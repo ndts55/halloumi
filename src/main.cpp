@@ -106,7 +106,7 @@ bool validate(const Simulation &simulation)
 
 int main()
 {
-    const std::string file = "acceptance/acceptance.test.5-days.json";
+    const std::string file = "acceptance/config_heo_sse_300k.json";
     std::cout << "Loading configuration from " << file << std::endl;
     auto configuration = json_from_file(file);
     auto simulation = Simulation::from_json(configuration);

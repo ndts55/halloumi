@@ -14,6 +14,7 @@ struct DeviceMatrix
     __device__ inline Vec<T, VEC_SIZE> vector_at(std::size_t vec_index) const
     {
         Vec<T, VEC_SIZE> vec;
+#pragma unroll
         for (std::size_t dim = 0; dim < VEC_SIZE; ++dim)
         {
             vec[dim] = at(vec_index, dim);
@@ -23,6 +24,7 @@ struct DeviceMatrix
 
     __device__ inline void set_vector_at(std::size_t vec_index, const Vec<T, VEC_SIZE> &vec)
     {
+#pragma unroll
         for (std::size_t dim = 0; dim < VEC_SIZE; ++dim)
         {
             at(vec_index, dim) = vec[dim];

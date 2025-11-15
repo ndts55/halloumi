@@ -82,6 +82,7 @@ __global__ void evaluate_ode(
     }
 
     // ! Starts at 1 due to optimization above
+#pragma unroll
     for (auto stage = 1; stage < RKF78::NStages; ++stage)
     {
         const StateVector current_state = calculate_current_state(states, d_states, index, stage, dt);
@@ -305,7 +306,7 @@ __host__ void propagate(Simulation &simulation)
 {
     // figure out grid size and block size
     auto n = simulation.n_samples();
-    auto bs = block_size_from_env();
+    auto bs = 64; // block_size_from_env();
     auto gs = grid_size(bs, n);
 
     sync_to_device(simulation);

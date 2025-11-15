@@ -22,7 +22,7 @@ __device__ inline VelocityVector three_body_non_barycentric(const PositionVector
     return three_body_barycentric(source_position, body_position, gm) + two_body(body_position, gm);
 }
 
-__device__ StateVector calculate_current_state(
+__device__ __noinline__ StateVector calculate_current_state(
     // State data
     const DeviceStatesMatrix &states,
     const DeviceDerivativesTensor &d_states,
@@ -49,7 +49,7 @@ __device__ StateVector calculate_current_state(
 }
 
 // Calculates the acceleration in the current position using point gravity
-__device__ VelocityVector calculate_velocity_derivative(
+__device__ __noinline__ VelocityVector calculate_velocity_derivative(
     // Primary inputes
     const PositionVector &current_position,
     const double &epoch,
