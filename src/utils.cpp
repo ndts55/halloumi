@@ -2,9 +2,11 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
+#include "logger.hpp"
 
 nlohmann::json json_from_file(const std::string &path)
 {
+    hl::Logger::debug("Reading JSON from file: {}", path);
     std::ifstream file(path);
     if (!file.is_open())
     {
@@ -20,6 +22,7 @@ nlohmann::json json_from_file(const std::string &path)
 
 nlohmann::json json_from_cbor(const std::string &file)
 {
+    hl::Logger::debug("Reading CBOR from file: {}", file);
     // construct path, read from file, parse to json, success
     std::filesystem::path file_path = file;
 
@@ -79,6 +82,7 @@ void print_json(const nlohmann::json &json)
 
 void json_to_file(const nlohmann::json &json, const std::string &path)
 {
+    hl::Logger::debug("Writing JSON to file: {}", path);
     std::ofstream file(path);
     if (!file.is_open())
     {

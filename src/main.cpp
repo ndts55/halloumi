@@ -106,6 +106,7 @@ bool validate(const Simulation &simulation) {
 int main() {
   hl::Logger::init("halloumi");
   hl::Logger::set_level(spdlog::level::debug);
+
   const std::string file = "acceptance/config_heo_sse_300k.json";
   hl::Logger::info("Loading configuration from {}", file);
   auto configuration = json_from_file(file);

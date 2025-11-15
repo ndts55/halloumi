@@ -9,7 +9,7 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
 {
 
     auto samples_json = json_from_file(configuration["samples"]);
-    auto in_samples = samples_json["inSamples"];
+    auto in_samples = samples_json.contains("inSamples") ? samples_json["inSamples"] : samples_json.contains("samples") ? samples_json["samples"] : nlohmann::json::array();
     auto n_vecs = in_samples.size();
 
     // Mutable State
@@ -73,6 +73,9 @@ Simulation Simulation::from_json(const nlohmann::json &configuration)
 
 ExpectedPropagationState ExpectedPropagationState::from_json(const nlohmann::json &json)
 {
+    if (!json.contains("outSamples")) {
+        return ExpectedPropagationState{};
+    }
     const auto out_samples = json["outSamples"];
     const auto n_vecs = out_samples.size();
     std::vector<double> states(n_vecs * STATE_DIM, 0.0);
