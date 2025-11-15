@@ -10,7 +10,7 @@ endif()
 
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
-set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} -G")
+set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} --generate-line-info")
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp src/*.cu)
 file(GLOB_RECURSE HEADER_FILES src/*.hpp src/*.cuh)
