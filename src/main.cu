@@ -1,9 +1,9 @@
 #include "core/types.cuh"
 #include "cuda/vec.cuh"
-#include "logger.hpp"
+#include "logger.cuh"
 #include "simulation/propagation/propagate.cuh"
-#include "simulation/simulation.hpp"
-#include "utils.hpp"
+#include "simulation/simulation.cuh"
+#include "utils.cuh"
 #include <cmath>
 #include <cuda_runtime.h>
 #include <iostream>
@@ -107,7 +107,7 @@ int main() {
   hl::Logger::init("halloumi");
   hl::Logger::set_level(spdlog::level::debug);
 
-  const std::string file = "acceptance/config_heo_sse_300k.json";
+  const std::string file = "acceptance/halloumiconfig.json";
   hl::Logger::info("Loading configuration from {}", file);
   auto configuration = json_from_file(file);
   auto simulation = Simulation::from_json(configuration);

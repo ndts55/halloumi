@@ -2,7 +2,7 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <fstream>
-#include "utils.hpp"
+#include "utils.cuh"
 #include <cuda_runtime.h>
 #include "cuda/vec.cuh"
 #include "core/types.cuh"

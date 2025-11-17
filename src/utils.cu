@@ -1,8 +1,8 @@
-#include "utils.hpp"
+#include "utils.cuh"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
-#include "logger.hpp"
+#include "logger.cuh"
 
 nlohmann::json json_from_file(const std::string &path)
 {

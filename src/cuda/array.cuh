@@ -7,6 +7,7 @@
 template <typename T>
 struct DeviceArray
 {
+    using value_type = T;
     std::size_t n_elements;
     T *data;
 
@@ -35,6 +36,7 @@ private:
     CudaPtr<T[]> device_data_;
 
 public:
+    using value_type = T;
     HostArray(std::size_t n_elements) : host_data_(n_elements), device_data_(make_cuda_array<T>(n_elements)) {}
     HostArray(
         std::size_t n_elements,

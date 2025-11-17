@@ -1,8 +1,8 @@
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include "core/types.cuh"
-#include "simulation/simulation.hpp"
-#include "utils.hpp"
+#include "simulation/simulation.cuh"
+#include "utils.cuh"
 #include "simulation/environment/ephemeris.cuh"
 
 Simulation Simulation::from_json(const nlohmann::json &configuration)

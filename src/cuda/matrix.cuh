@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include "cuda/utils.cuh"
 #include "cuda/vec.cuh"
-#include "utils.hpp"
+#include "utils.cuh"
 #include <iostream>
 #include "cuda/cuda_ptr.cuh"
 

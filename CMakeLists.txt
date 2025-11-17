@@ -22,6 +22,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(spdlog)
 
+# Get GoogleTest
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+FetchContent_MakeAvailable(googletest)
+enable_testing()
+
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} --generate-line-info")
 
@@ -39,4 +47,14 @@ set_target_properties(halloumi PROPERTIES
 target_link_libraries(halloumi PRIVATE nlohmann_json::nlohmann_json spdlog)
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --ptxas-options=-v")
+
+# Test Setup
+file(GLOB TEST_SOURCES tests/*.cu)
+list(FILTER SOURCES EXCLUDE REGEX ".*main\\.cpp$")
+add_executable(tests ${TEST_SOURCES} ${SOURCES} ${HEADERS})
+target_link_libraries(tests PRIVATE GTest::gtest_main nlohmann_json::nlohmann_json spdlog)
+target_include_directories(tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+include(GoogleTest)
+gtest_discover_tests(tests)
 

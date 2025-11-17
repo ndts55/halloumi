@@ -1,0 +1,17 @@
+{
+    "name": "Acceptance Test No Collision 5 Days",
+    "samples": "acceptance/test.nocollision.samples.json",
+    "simConfig": {
+        "durationDays": 5.0,
+        "withCollisions": false,
+        "config": "acceptance/standard_cudajectory_config.json"
+    },
+    "validation": {
+        "type": "perSampleError",
+        "absTol": {
+            "time": 0,
+            "pos": 1.2e-5,
+            "vel": 1e-8
+        }
+    }
+}

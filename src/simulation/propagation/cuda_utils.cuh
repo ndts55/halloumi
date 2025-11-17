@@ -5,7 +5,7 @@
 #include "core/types.cuh"
 #include "cuda/vec.cuh"
 #include "simulation/environment/ephemeris.cuh"
-#include "simulation/simulation.hpp"
+#include "simulation/simulation.cuh"
 #include "simulation/tableau.cuh"
 #include "simulation/rkf_parameters.cuh"
 

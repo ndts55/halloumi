@@ -7,13 +7,14 @@
 #include "cuda/vec.cuh"
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/propagation/propagate.cuh"
-#include "simulation/simulation.hpp"
+#include "simulation/simulation.cuh"
 #include "simulation/tableau.cuh"
 #include "simulation/rkf_parameters.cuh"
 #include "simulation/propagation/cuda_utils.cuh"
 #include "simulation/propagation/math_utils.cuh"
 #include "simulation/propagation/time_step_criterion.cuh"
-#include "utils.hpp"
+#include "utils.cuh"
+#include <assert.h>
 
 __global__ void prepare_simulation_run(
     // Input
@@ -41,6 +42,21 @@ __global__ void prepare_simulation_run(
     const double span = end_epochs.at(i) - start_epochs.at(i);
     next_dts.at(i) = copysign(device_rkf_parameters.initial_time_step, span);
     backwards.at(i) = span < 0;
+}
+
+__global__ void prepare_simulation_run_test_kernel(
+    const DeviceBoolArray termination_flags,
+    const DeviceBoolArray simulation_ended,
+    const DeviceBoolArray backwards,
+    const DeviceFloatArray next_dts)
+{
+    const CudaIndex i = index_in_grid();
+    if (i >= termination_flags.n_elements)
+    {
+        return;
+    }
+
+    assert(!termination_flags.at(i) && !simulation_ended.at(i) && !backwards.at(i) && (next_dts.at(i) == device_rkf_parameters.initial_time_step));
 }
 
 __global__ void evaluate_ode(
@@ -186,15 +202,8 @@ __global__ void reduce_bool_with_and(const DeviceBoolArray termination_flags, De
 
     const CudaIndex local_index = index_in_block();
     const CudaIndex global_index = index_in_grid();
-    if (global_index <= termination_flags.n_elements)
-    {
-        block_buffer[local_index] = termination_flags.at(global_index);
-    }
-    else
-    {
-        // Neutral element for (bool, &&) is true
-        block_buffer[local_index] = true;
-    }
+    block_buffer[local_index] = global_index < termination_flags.n_elements ? termination_flags.at(global_index) : true;
+
     __syncthreads();
 
     for (auto lim = blockDim.x / 2; lim >= 1; lim /= 2)
@@ -212,30 +221,32 @@ __global__ void reduce_bool_with_and(const DeviceBoolArray termination_flags, De
     }
 }
 
-__host__ bool all_terminated(
+__host__ DeviceBoolArray::value_type all_terminated(
     const DeviceBoolArray &termination_flags,
     DeviceBoolArray &reduction_buffer,
     std::size_t first_grid_size,
     std::size_t block_size)
 {
-    size_t shared_mem_size = block_size * sizeof(uint8_t);
+    size_t shared_mem_size = block_size * sizeof(DeviceBoolArray::value_type);
 
     reduce_bool_with_and<<<first_grid_size, block_size, shared_mem_size>>>(termination_flags, reduction_buffer);
-    check_cuda_error(cudaDeviceSynchronize(), "first reduction pass on GPU");
+    cudaDeviceSynchronize();
+    check_cuda_error(cudaGetLastError(), "first reduction pass on GPU");
 
     if (first_grid_size > 1)
     {
         auto second_grid_size = grid_size(block_size, first_grid_size);
         reduce_bool_with_and<<<second_grid_size, block_size, shared_mem_size>>>(reduction_buffer, reduction_buffer);
-        check_cuda_error(cudaDeviceSynchronize(), "second reduction pass on GPU");
+        cudaDeviceSynchronize();
+        check_cuda_error(cudaGetLastError(), "second reduction pass on GPU");
     }
 
-    bool result;
+    DeviceBoolArray::value_type result;
     check_cuda_error(
-        cudaMemcpy(&result, reduction_buffer.data, sizeof(uint8_t), cudaMemcpyDeviceToHost),
+        cudaMemcpy(&result, reduction_buffer.data, sizeof(DeviceBoolArray::value_type), cudaMemcpyDeviceToHost),
         "Error copying reduction result from device to host");
 
-    return (bool)result;
+    return result;
 }
 
 void dump_d_states(const HostDerivativesTensor &d_states, const std::string &filename = "d_states.json")
@@ -288,26 +299,32 @@ void dump_array(const HostArray<T> &array, const std::string &filename)
     json_to_file(json_array, filename);
 }
 
-__global__ void ephemeris_test_kernel(DeviceEphemeris ephemeris)
-{
-    if (index_in_grid() == 0)
-    {
-        double test_epoch = 9617.0;
-        PositionVector earth_pos = ephemeris.calculate_position(test_epoch, 399, 0); // Earth relative to SSB
-        printf("Earth position at epoch %.15e: [%.15e, %.15e, %.15e]\n", test_epoch, earth_pos[0], earth_pos[1], earth_pos[2]);
-        PositionVector expected_pos{-2.785302382150888e+07, 1.323128003139767e+08, 5.739756479216209e+07};
-        PositionVector diff = expected_pos - earth_pos;
-        printf("Expected position: [%.15e, %.15e, %.15e]\n", expected_pos[0], expected_pos[1], expected_pos[2]);
-        printf("Difference: [%.15e, %.15e, %.15e]\n", diff[0], diff[1], diff[2]);
-    }
-}
-
 __host__ void propagate(Simulation &simulation)
 {
     // figure out grid size and block size
     auto n = simulation.n_samples();
     auto bs = 64; // block_size_from_env();
     auto gs = grid_size(bs, n);
+
+#ifndef NDEBUG
+    // TODO move this to a unit test
+    auto tf0 = HostBoolArray(n, 1);
+    tf0.copy_to_device();
+    auto buffer = HostBoolArray(n, 0);
+    buffer.copy_to_device();
+    cudaDeviceSynchronize();
+    auto db = buffer.get();
+    auto d0 = tf0.get();
+    assert(all_terminated(d0, db, gs, bs));
+    buffer.copy_to_device();
+    std::vector<bool> vec(n, true);
+    vec.at(n - 1) = false;
+    auto tf1 = HostBoolArray(std::move(vec));
+    tf1.copy_to_device();
+    cudaDeviceSynchronize();
+    auto d1 = tf1.get();
+    assert(!all_terminated(d1, db, gs, bs));
+#endif
 
     sync_to_device(simulation);
     // set up bool reduction buffer for termination flag kernel
@@ -338,8 +355,6 @@ __host__ void propagate(Simulation &simulation)
     auto constants = simulation.constants.get();
     auto ephemeris = simulation.ephemeris.get();
 
-    std::cout << "Preparing simulation run" << std::endl;
-
     prepare_simulation_run<<<gs, bs>>>(
         end_epochs,
         start_epochs,
@@ -347,9 +362,19 @@ __host__ void propagate(Simulation &simulation)
         simulation_ended_flags,
         backwards_flags,
         next_dts);
+    cudaDeviceSynchronize();
     check_cuda_error(cudaGetLastError(), "prepare simulation run kernel launch failed");
 
-    std::cout << "Grid size: " << gs << ", Block size: " << bs << std::endl;
+#ifndef NDEBUG
+    // TODO move this to a unit test
+    prepare_simulation_run_test_kernel<<<gs, bs>>>(
+        termination_flags,
+        simulation_ended_flags,
+        backwards_flags,
+        next_dts);
+    cudaDeviceSynchronize();
+    check_cuda_error(cudaGetLastError(), "prepare simulation run test kernel failed");
+#endif
 
     bool reached_max_steps = true;
     for (auto step = 0; step < simulation.rkf_parameters.max_steps; ++step)
@@ -365,6 +390,7 @@ __host__ void propagate(Simulation &simulation)
             constants,
             ephemeris);
 #ifndef NDEBUG
+        cudaDeviceSynchronize();
         check_cuda_error(cudaGetLastError(), "evaluate ode kernel launch failed");
 #endif
 
@@ -378,6 +404,7 @@ __host__ void propagate(Simulation &simulation)
             termination_flags,
             epochs);
 #ifndef NDEBUG
+        cudaDeviceSynchronize();
         check_cuda_error(cudaGetLastError(), "advance step kernel launch failed");
 #endif
 
@@ -391,7 +418,7 @@ __host__ void propagate(Simulation &simulation)
 
     if (reached_max_steps)
     {
-        std::cout << "Terminated because the simulation reached max step count" << std::endl;
+        std::cout << "Some samples did not terminate within the maximum number of steps" << std::endl;
     }
     else
     {
@@ -400,12 +427,10 @@ __host__ void propagate(Simulation &simulation)
 
     sync_to_host(simulation);
 
-    std::cout << "Dumping d_states to file" << std::endl;
+    cudaDeviceSynchronize();
     check_cuda_error(host_d_states.copy_to_host());
-    dump_d_states(host_d_states);
-    // std::cout << "Dumping states to file" << std::endl;
+    // dump_d_states(host_d_states);
     // dump_states(simulation.propagation_state.states);
-    // std::cout << "Dumping next_dts" << std::endl;
     // dump_array(simulation.propagation_state.next_dts, "next_dts.json");
 
     simulation.propagated = true;

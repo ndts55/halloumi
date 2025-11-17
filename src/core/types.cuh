@@ -23,13 +23,13 @@ using VelocityVector = Vec<double, VELOCITY_DIM>;
 
 using HostFloatArray = HostArray<double>;
 using HostIntegerArray = HostArray<int>;
-using HostBoolArray = HostArray<uint8_t>;
+using HostBoolArray = HostArray<bool>;
 using HostStatesMatrix = HostMatrix<double, STATE_DIM>;
 using HostDerivativesTensor = HostTensor<double, RKF78::NStages, STATE_DIM>;
 
 using DeviceFloatArray = DeviceArray<double>;
 using DeviceIntegerArray = DeviceArray<int>;
-using DeviceBoolArray = DeviceArray<uint8_t>;
+using DeviceBoolArray = DeviceArray<bool>;
 using DeviceStatesMatrix = DeviceMatrix<double, STATE_DIM>;
 using DeviceDerivativesTensor = DeviceTensor<double, RKF78::NStages, STATE_DIM>;
 
