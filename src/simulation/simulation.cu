@@ -3,7 +3,7 @@
 #include "core/types.cuh"
 #include "simulation/simulation.cuh"
 #include "utils.cuh"
-#include "simulation/environment/ephemeris.cuh"
+#include "simulation/ephemeris.cuh"
 
 Simulation Simulation::from_json(const nlohmann::json &configuration)
 {

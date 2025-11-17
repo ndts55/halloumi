@@ -2,9 +2,9 @@
 #include <nlohmann/json.hpp>
 #include "core/types.cuh"
 #include "simulation/rkf_parameters.cuh"
-#include "simulation/environment/constants.cuh"
-#include "simulation/environment/ephemeris.cuh"
-#include "simulation/environment/constants.cuh"
+#include "simulation/constants.cuh"
+#include "simulation/ephemeris.cuh"
+#include "simulation/constants.cuh"
 
 using ActiveBodies = HostIntegerArray;
 

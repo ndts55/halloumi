@@ -3,8 +3,8 @@
 #include "core/vec.cuh"
 #include "core/types.cuh"
 #include "simulation/tableau.cuh"
-#include "simulation/environment/ephemeris.cuh"
-#include "simulation/environment/constants.cuh"
+#include "simulation/ephemeris.cuh"
+#include "simulation/constants.cuh"
 #include "simulation/rkf_parameters.cuh"
 
 __device__ inline VelocityVector two_body(const PositionVector &position_delta, const double &gm)

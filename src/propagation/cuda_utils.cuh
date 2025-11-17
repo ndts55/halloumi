@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include "core/types.cuh"
 #include "core/vec.cuh"
-#include "simulation/environment/ephemeris.cuh"
+#include "simulation/ephemeris.cuh"
 #include "simulation/simulation.cuh"
 #include "simulation/tableau.cuh"
 #include "simulation/rkf_parameters.cuh"

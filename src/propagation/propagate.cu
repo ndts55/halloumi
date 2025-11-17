@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 #include "core/types.cuh"
 #include "core/vec.cuh"
-#include "simulation/environment/ephemeris.cuh"
+#include "simulation/ephemeris.cuh"
 #include "propagation/propagate.cuh"
 #include "simulation/simulation.cuh"
 #include "simulation/tableau.cuh"
