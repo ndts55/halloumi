@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "core/types.cuh"
-#include "cuda/vec.cuh"
+#include "core/vec.cuh"
 #include "simulation/environment/ephemeris.cuh"
 #include "simulation/simulation.cuh"
 #include "simulation/tableau.cuh"

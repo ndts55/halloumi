@@ -1,6 +1,6 @@
 #pragma once
 #include <cuda_runtime.h>
-#include "cuda/vec.cuh"
+#include "core/vec.cuh"
 #include "core/types.cuh"
 #include "simulation/tableau.cuh"
 #include "simulation/environment/ephemeris.cuh"

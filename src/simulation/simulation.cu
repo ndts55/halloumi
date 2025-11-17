@@ -88,7 +88,7 @@ ExpectedPropagationState ExpectedPropagationState::from_json(const nlohmann::jso
         const auto state = sample["stateCart"];
         for (auto dim = 0; dim < STATE_DIM; ++dim)
         {
-            states.at(get_2d_index_(n_vecs, index, dim)) = state[dim];
+            states.at(get_2d_index(n_vecs, index, dim)) = state[dim];
         }
         index += 1;
     }

@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include <limits>
 #include "core/types.cuh"
-#include "cuda/vec.cuh"
+#include "core/vec.cuh"
 #include "simulation/propagation/math_utils.cuh"
 
 __device__ inline StateVector calculate_desired_error_magnitude(

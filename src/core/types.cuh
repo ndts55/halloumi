@@ -1,9 +1,9 @@
 #pragma once
-#include "cuda/vec.cuh"
+#include "core/vec.cuh"
 #include "simulation/tableau.cuh"
-#include "cuda/array.cuh"
-#include "cuda/matrix.cuh"
-#include "cuda/tensor.cuh"
+#include "core/array.cuh"
+#include "core/matrix.cuh"
+#include "core/tensor.cuh"
 
 #pragma region State Vector Dimensions
 

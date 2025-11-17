@@ -4,7 +4,7 @@
 #include <fstream>
 #include "utils.cuh"
 #include <cuda_runtime.h>
-#include "cuda/vec.cuh"
+#include "core/vec.cuh"
 #include "core/types.cuh"
 
 #pragma region Layout v1

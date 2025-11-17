@@ -33,8 +33,8 @@ enable_testing()
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS_DEBUG} --generate-line-info")
 
-file(GLOB_RECURSE SOURCES src/*.cpp src/*.cu)
-file(GLOB_RECURSE HEADERS src/*.hpp src/*.cuh)
+file(GLOB_RECURSE SOURCES src/*.cu)
+file(GLOB_RECURSE HEADERS src/*.cuh)
 
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
@@ -50,7 +50,7 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --ptxas-options=-v")
 
 # Test Setup
 file(GLOB TEST_SOURCES tests/*.cu)
-list(FILTER SOURCES EXCLUDE REGEX ".*main\\.cpp$")
+list(FILTER SOURCES EXCLUDE REGEX ".*main\\.cu$")
 add_executable(tests ${TEST_SOURCES} ${SOURCES} ${HEADERS})
 target_link_libraries(tests PRIVATE GTest::gtest_main nlohmann_json::nlohmann_json spdlog)
 target_include_directories(tests PRIVATE ${CMAKE_SOURCE_DIR}/src)

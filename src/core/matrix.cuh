@@ -1,10 +1,10 @@
 #pragma once
 #include <cuda_runtime.h>
-#include "cuda/utils.cuh"
-#include "cuda/vec.cuh"
+#include "core/utils.cuh"
+#include "core/vec.cuh"
 #include "utils.cuh"
 #include <iostream>
-#include "cuda/cuda_ptr.cuh"
+#include "core/cuda_ptr.cuh"
 
 template <typename T, std::size_t VEC_SIZE>
 struct DeviceMatrix
@@ -36,11 +36,11 @@ struct DeviceMatrix
         const std::size_t &vec_index,
         const std::size_t &com_index)
     {
-        return data[get_2d_index_(n_vecs, vec_index, com_index)];
+        return data[get_2d_index(n_vecs, vec_index, com_index)];
     }
     __device__ inline const T &at(const std::size_t &vec_index, const std::size_t &com_index) const
     {
-        return data[get_2d_index_(n_vecs, vec_index, com_index)];
+        return data[get_2d_index(n_vecs, vec_index, com_index)];
     }
 
     // Device-side iterators (over the flat data array)
@@ -77,14 +77,14 @@ public:
         const std::size_t &vec_index,
         const std::size_t &com_index)
     {
-        return host_data_.at(get_2d_index_(n_vecs_, vec_index, com_index));
+        return host_data_.at(get_2d_index(n_vecs_, vec_index, com_index));
     }
 
     inline const T &at(
         const std::size_t &vec_index,
         const std::size_t &com_index) const
     {
-        return host_data_.at(get_2d_index_(n_vecs_, vec_index, com_index));
+        return host_data_.at(get_2d_index(n_vecs_, vec_index, com_index));
     }
 
     cudaError_t copy_to_device()

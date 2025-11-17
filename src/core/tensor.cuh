@@ -1,9 +1,9 @@
 #pragma once
 #include <cuda_runtime.h>
-#include "cuda/utils.cuh"
-#include "cuda/vec.cuh"
+#include "core/utils.cuh"
+#include "core/vec.cuh"
 #include "utils.cuh"
-#include "cuda/cuda_ptr.cuh"
+#include "core/cuda_ptr.cuh"
 
 template <typename T, std::size_t MAT_SIZE, std::size_t VEC_SIZE>
 struct DeviceTensor
@@ -36,14 +36,14 @@ struct DeviceTensor
         const std::size_t &vec_index,
         const std::size_t &com_index)
     {
-        return data[get_3d_index_<VEC_SIZE>(n_vecs, mat_index, vec_index, com_index)];
+        return data[get_3d_index<VEC_SIZE>(n_vecs, mat_index, vec_index, com_index)];
     }
     __device__ inline const T &at(
         const std::size_t &mat_index,
         const std::size_t &vec_index,
         const std::size_t &com_index) const
     {
-        return data[get_3d_index_<VEC_SIZE>(n_vecs, mat_index, vec_index, com_index)];
+        return data[get_3d_index<VEC_SIZE>(n_vecs, mat_index, vec_index, com_index)];
     }
 
     // Device-side iterators (over the flat data array)
@@ -84,7 +84,7 @@ public:
         const std::size_t &vec_index,
         const std::size_t &com_index)
     {
-        return host_data_.at(get_3d_index_<VEC_SIZE>(n_mats_, mat_index, vec_index, com_index));
+        return host_data_.at(get_3d_index<VEC_SIZE>(n_mats_, mat_index, vec_index, com_index));
     }
 
     inline const T &at(
@@ -92,7 +92,7 @@ public:
         const std::size_t &vec_index,
         const std::size_t &com_index) const
     {
-        return host_data_.at(get_3d_index_<VEC_SIZE>(n_mats_, mat_index, vec_index, com_index));
+        return host_data_.at(get_3d_index<VEC_SIZE>(n_mats_, mat_index, vec_index, com_index));
     }
 
     cudaError_t copy_to_device()

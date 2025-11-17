@@ -2,8 +2,8 @@
 #include <nlohmann/json.hpp>
 #include <cuda_runtime.h>
 #include "core/types.cuh"
-#include "cuda/vec.cuh"
-#include "cuda/matrix.cuh"
+#include "core/vec.cuh"
+#include "core/matrix.cuh"
 
 enum IntMembers
 {

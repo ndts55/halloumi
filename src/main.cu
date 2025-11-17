@@ -1,5 +1,5 @@
 #include "core/types.cuh"
-#include "cuda/vec.cuh"
+#include "core/vec.cuh"
 #include "logger.cuh"
 #include "simulation/propagation/propagate.cuh"
 #include "simulation/simulation.cuh"
@@ -27,7 +27,7 @@ struct Errors {
     for (auto vidx = 0; vidx < simulation.n_samples(); ++vidx) {
       for (auto dim = POSITION_OFFSET; dim < POSITION_OFFSET + POSITION_DIM;
            ++dim) {
-        position_error_components[vidx] += state_error_components[get_2d_index_(
+        position_error_components[vidx] += state_error_components[get_2d_index(
             simulation.n_samples(), vidx, dim)];
       }
       position_error_components[vidx] =
@@ -40,7 +40,7 @@ struct Errors {
     for (auto vidx = 0; vidx < simulation.n_samples(); ++vidx) {
       for (auto dim = VELOCITY_OFFSET; dim < VELOCITY_OFFSET + VELOCITY_DIM;
            ++dim) {
-        velocity_error_components[vidx] += state_error_components[get_2d_index_(
+        velocity_error_components[vidx] += state_error_components[get_2d_index(
             simulation.n_samples(), vidx, dim)];
       }
       velocity_error_components[vidx] =
