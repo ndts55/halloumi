@@ -4,6 +4,7 @@
 #include "cuda/vec.cuh"
 #include "utils.hpp"
 #include <iostream>
+#include "cuda/cuda_ptr.cuh"
 
 template <typename T, std::size_t VEC_SIZE>
 struct DeviceMatrix

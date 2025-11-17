@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cuda_runtime.h>
 #include "cuda/utils.cuh"
+#include "cuda/cuda_ptr.cuh"
 
 template <typename T>
 struct DeviceArray

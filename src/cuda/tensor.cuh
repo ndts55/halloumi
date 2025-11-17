@@ -3,6 +3,7 @@
 #include "cuda/utils.cuh"
 #include "cuda/vec.cuh"
 #include "utils.hpp"
+#include "cuda/cuda_ptr.cuh"
 
 template <typename T, std::size_t MAT_SIZE, std::size_t VEC_SIZE>
 struct DeviceTensor
