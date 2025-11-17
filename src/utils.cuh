@@ -13,26 +13,6 @@ void json_to_file(const nlohmann::json &json, const std::string &path);
 
 void print_json(const nlohmann::json &json);
 
-// Optimized for coalesced access when vec_index is thread index
-__device__ __host__ inline std::size_t get_2d_index(
-    const std::size_t &n_vecs,
-    const std::size_t &vec_index,
-    const std::size_t &com_index)
-{
-    return com_index * n_vecs + vec_index;
-}
-
-// Optimized for coalesced access when vec_index is thread index.
-template <std::size_t VEC_SIZE>
-__device__ __host__ inline std::size_t get_3d_index(
-    const std::size_t &n_mats,
-    const std::size_t &mat_index,
-    const std::size_t &vec_index,
-    const std::size_t &com_index)
-{
-    return (mat_index * VEC_SIZE + com_index) * n_mats + vec_index;
-}
-
 template <typename T>
 void print_vector_mean(const std::vector<T> &vec, const std::string &name)
 {

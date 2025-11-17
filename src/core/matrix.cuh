@@ -2,7 +2,6 @@
 #include <cuda_runtime.h>
 #include "core/utils.cuh"
 #include "core/vec.cuh"
-#include "utils.cuh"
 #include <iostream>
 #include "core/cuda_ptr.cuh"
 

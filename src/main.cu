@@ -1,6 +1,5 @@
 #include "core/types.cuh"
 #include "core/vec.cuh"
-#include "logger.cuh"
 #include "propagation/propagate.cuh"
 #include "simulation/simulation.cuh"
 #include "utils.cuh"
@@ -80,51 +79,43 @@ bool validate(const Simulation &simulation) {
       errors.velocity_error <= simulation.tolerances.velocity;
   const auto epoch_passed = errors.epoch_error <= simulation.tolerances.time;
   if (!pos_passed) {
-    hl::Logger::error("Position error: {} exceeds tolerance: {}",
-                      errors.position_error, simulation.tolerances.position);
+    std::cout << "Position error: " << errors.position_error << " exceeds tolerance: " << simulation.tolerances.position << std::endl;
   } else {
-    hl::Logger::info("Position error: {} within tolerance: {}",
-                     errors.position_error, simulation.tolerances.position);
+    std::cout << "Position error: " << errors.position_error << " within tolerance: " << simulation.tolerances.position << std::endl;
   }
   if (!vel_passed) {
-    hl::Logger::error("Velocity error: {} exceeds tolerance: {}",
-                      errors.velocity_error, simulation.tolerances.velocity);
+    std::cout << "Velocity error: " << errors.velocity_error << " exceeds tolerance: " << simulation.tolerances.velocity << std::endl;
   } else {
-    hl::Logger::info("Velocity error: {} within tolerance: {}",
-                     errors.velocity_error, simulation.tolerances.velocity);
+    std::cout << "Velocity error: " << errors.velocity_error << " within tolerance: " << simulation.tolerances.velocity << std::endl;
   }
   if (!epoch_passed) {
-    hl::Logger::error("Epoch error: {} exceeds tolerance: {}",
-                      errors.epoch_error, simulation.tolerances.time);
+    std::cout << "Epoch error: " << errors.epoch_error << " exceeds tolerance: " << simulation.tolerances.time << std::endl;
   } else {
-    hl::Logger::info("Epoch error: {} within tolerance: {}", errors.epoch_error,
-                     simulation.tolerances.time);
+    std::cout << "Epoch error: " << errors.epoch_error << " within tolerance: " << simulation.tolerances.time << std::endl;
   }
   return pos_passed && vel_passed && epoch_passed;
 }
 
 int main() {
-  hl::Logger::init("halloumi");
-  hl::Logger::set_level(spdlog::level::debug);
 
   const std::string file = "acceptance/halloumiconfig.json";
-  hl::Logger::info("Loading configuration from {}", file);
+  std::cout << "Loading configuration from " << file << std::endl;
   auto configuration = json_from_file(file);
   auto simulation = Simulation::from_json(configuration);
-  hl::Logger::info("Loaded simulation with {} samples", simulation.n_samples());
-  hl::Logger::info("Propagating");
+  std::cout << "Loaded simulation with " << simulation.n_samples() << " samples" << std::endl;
+  std::cout << "Propagating" << std::endl;
   propagate(simulation);
   if (simulation.propagated) {
-    hl::Logger::info("Propagated");
+    std::cout << "Propagated" << std::endl;
   } else {
-    hl::Logger::error("Propagation failed!");
+    std::cout << "Propagation failed!" << std::endl;
     return 1;
   }
 
   if (validate(simulation)) {
-    hl::Logger::info("Validation successful!");
+    std::cout << "Validation successful!" << std::endl;
   } else {
-    hl::Logger::error("Validation failed!");
+    std::cout << "Validation failed!" << std::endl;
     return 1;
   }
 
