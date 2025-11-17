@@ -1,7 +1,7 @@
 #include "core/types.cuh"
 #include "core/vec.cuh"
 #include "logger.cuh"
-#include "simulation/propagation/propagate.cuh"
+#include "propagation/propagate.cuh"
 #include "simulation/simulation.cuh"
 #include "utils.cuh"
 #include <cmath>

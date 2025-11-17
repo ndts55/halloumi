@@ -3,7 +3,7 @@
 #include <limits>
 #include "core/types.cuh"
 #include "core/vec.cuh"
-#include "simulation/propagation/math_utils.cuh"
+#include "propagation/math_utils.cuh"
 
 __device__ inline StateVector calculate_desired_error_magnitude(
     const StateVector &current_state_derivative,

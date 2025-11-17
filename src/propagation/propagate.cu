@@ -6,13 +6,13 @@
 #include "core/types.cuh"
 #include "core/vec.cuh"
 #include "simulation/environment/ephemeris.cuh"
-#include "simulation/propagation/propagate.cuh"
+#include "propagation/propagate.cuh"
 #include "simulation/simulation.cuh"
 #include "simulation/tableau.cuh"
 #include "simulation/rkf_parameters.cuh"
-#include "simulation/propagation/cuda_utils.cuh"
-#include "simulation/propagation/math_utils.cuh"
-#include "simulation/propagation/time_step_criterion.cuh"
+#include "propagation/cuda_utils.cuh"
+#include "propagation/math_utils.cuh"
+#include "propagation/time_step_criterion.cuh"
 #include "utils.cuh"
 #include <assert.h>
 
