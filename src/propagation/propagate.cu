@@ -18,20 +18,6 @@
 #include "propagation/all_terminated.cuh"
 #include "propagation/prepare_simulation_run.cuh"
 
-__global__ void prepare_simulation_run_test_kernel(
-    const DeviceBoolArray termination_flags,
-    const DeviceBoolArray simulation_ended,
-    const DeviceBoolArray backwards,
-    const DeviceFloatArray next_dts)
-{
-    const CudaIndex i = index_in_grid();
-    if (i >= termination_flags.n_elements)
-    {
-        return;
-    }
-
-    assert(!termination_flags.at(i) && !simulation_ended.at(i) && !backwards.at(i) && (next_dts.at(i) == device_rkf_parameters.initial_time_step));
-}
 
 __global__ void evaluate_ode(
     // Input data
@@ -286,17 +272,6 @@ __host__ void propagate(Simulation &simulation)
         next_dts);
     cudaDeviceSynchronize();
     check_cuda_error(cudaGetLastError(), "prepare simulation run kernel launch failed");
-
-#ifndef NDEBUG
-    // TODO move this to a unit test
-    prepare_simulation_run_test_kernel<<<gs, bs>>>(
-        termination_flags,
-        simulation_ended_flags,
-        backwards_flags,
-        next_dts);
-    cudaDeviceSynchronize();
-    check_cuda_error(cudaGetLastError(), "prepare simulation run test kernel failed");
-#endif
 
     bool reached_max_steps = true;
     for (auto step = 0; step < simulation.rkf_parameters.max_steps; ++step)
