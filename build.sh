@@ -7,11 +7,9 @@ function build() {
     cmake -B $build_dir \
         -S $source_dir \
         -DCMAKE_CUDA_ARCHITECTURES="90" \
-        -DCMAKE_BUILD_TYPE=Debug \
+        -DCMAKE_BUILD_TYPE=Release \
         "$@"
     cmake --build build -j
-    # cmake --install $install_dir
-        #-DCMAKE_BUILD_TYPE=Release \
 }
 
 build "$@"
