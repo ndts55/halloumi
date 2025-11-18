@@ -47,12 +47,13 @@ public:
     template <std::size_t N>
     HostArray(std::array<T, N> array) : host_data_(array.begin(), array.end()),
                                         device_data_(make_cuda_array<T>(array.size())) {}
-    inline T &at(std::size_t index)
+    
+    inline auto at(std::size_t index) -> decltype(host_data_.at(index))
     {
         return host_data_.at(index);
     }
 
-    inline const T &at(std::size_t index) const
+    inline auto at(std::size_t index) const -> decltype(host_data_.at(index))
     {
         return host_data_.at(index);
     }
