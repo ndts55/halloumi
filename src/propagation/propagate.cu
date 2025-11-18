@@ -214,26 +214,6 @@ __host__ void propagate(Simulation &simulation)
     auto bs = 64; // block_size_from_env();
     auto gs = grid_size(bs, n);
 
-#ifndef NDEBUG
-    // TODO move this to a unit test
-    auto tf0 = HostBoolArray(n, 1);
-    tf0.copy_to_device();
-    auto buffer = HostBoolArray(n, 0);
-    buffer.copy_to_device();
-    cudaDeviceSynchronize();
-    auto db = buffer.get();
-    auto d0 = tf0.get();
-    assert(all_terminated(d0, db, gs, bs));
-    buffer.copy_to_device();
-    std::vector<bool> vec(n, true);
-    vec.at(n - 1) = false;
-    auto tf1 = HostBoolArray(std::move(vec));
-    tf1.copy_to_device();
-    cudaDeviceSynchronize();
-    auto d1 = tf1.get();
-    assert(!all_terminated(d1, db, gs, bs));
-#endif
-
     sync_to_device(simulation);
     // set up bool reduction buffer for termination flag kernel
     HostBoolArray host_reduction_buffer(gs, false); // One entry per block
