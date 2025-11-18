@@ -4,6 +4,8 @@
 #include "core/types.cuh"
 #include "core/vec.cuh"
 #include "propagation/math_utils.cuh"
+#include "simulation/rkf_parameters.cuh"
+#include "simulation/tableau.cuh"
 
 __device__ inline StateVector calculate_desired_error_magnitude(
     const StateVector &current_state_derivative,
@@ -24,7 +26,7 @@ __device__ inline StateVector calculate_desired_error_magnitude(
     return desired_error_magnitude;
 }
 
-__device__ StateVector calculate_componentwise_truncation_error(const DeviceDerivativesTensor &d_states, const CudaIndex &index)
+__device__ inline StateVector calculate_componentwise_truncation_error(const DeviceDerivativesTensor &d_states, const CudaIndex &index)
 {
     StateVector sum{};
     for (std::size_t stage = 0; stage < RKF78::NStages; ++stage)
@@ -35,7 +37,8 @@ __device__ StateVector calculate_componentwise_truncation_error(const DeviceDeri
     return sum;
 }
 
-__device__ double clamp_dt(const double &dt)
+
+__device__ inline double clamp_dt(const double &dt)
 {
     return min(device_rkf_parameters.max_dt_scale, max(device_rkf_parameters.min_dt_scale, dt));
 }
